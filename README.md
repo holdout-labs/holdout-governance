@@ -36,7 +36,7 @@ gov validate --manifest examples/ai-research-manifest.json
 gov report --manifest examples/ai-research-manifest.json
 ```
 
-## Contract (v0.2, freezing)
+## Contract (v0.2, frozen)
 
 The governance contract lives in `schema/` and is locked by tests:
 
@@ -45,8 +45,28 @@ The governance contract lives in `schema/` and is locked by tests:
 - [`examples/artifact.example.json`](examples/artifact.example.json) — a conforming `research_conclusion` artifact
 - [`docs/migration-v1-to-v0.2.md`](docs/migration-v1-to-v0.2.md) — upgrade path from the v1 manifest
 
-Next: `gov check` / `gov report` evaluate artifacts against a policy
-(decision = `release | review_needed | block`).
+## gov check — scenario 1 (done, M1)
+
+AI-generated research conclusions must pass data + timing + evidence gates
+before they can ship:
+
+```bash
+# scaffold a research-conclusion project
+gov init --dir research/ --name momentum-oos-review
+# point gate-inputs.json at your data (imm / padj / lf / fl commands),
+# then run the gate chain and decide:
+gov check --manifest research/artifact.json
+#   exit 0 = release, 1 = review_needed, 2 = block
+# artifact.json is written back with decision, missing and gate evidence;
+# raw tool outputs are persisted under research/reports/ (sha256-referenced)
+
+gov report --manifest research/artifact.json   # human-readable
+```
+
+The acceptance suite (`tests/test_m1_scenario1.py`) runs 10 seeded-defect
+samples (survivorship ×3, look-ahead ×3, adjustment drift ×2, missing
+evidence ×2) against the *real* `imm` / `lf` / `padj` binaries — all 10 are
+blocked, zero false passes — plus a clean control that must release.
 
 ## Fit
 

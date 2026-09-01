@@ -26,7 +26,7 @@ v0.2 generalizes it to any artifact kind and moves policy out of code into
 | `safety.*`                           | `safety.*`                            | unchanged, still all `false` |
 | `conclusion` (`research_only`)       | *(dropped)*                           | governed by kind + policy, not a free-text field |
 | *(hardcoded REQUIRED_CHECKS)*        | `policy_ref` + `policy.yml`           | **new**; policy becomes data |
-| *(absent)*                           | `decision` / `missing`                | **new**; written by `gov check` |
+| *(absent)*                           | `decision` / `missing`                | **new**; `pending` before first check, then written by `gov check` |
 
 ## Breaking changes
 

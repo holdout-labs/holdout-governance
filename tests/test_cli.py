@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from holdout_governance import __version__
 from holdout_governance.cli import main
 
 EXAMPLE = Path(__file__).resolve().parents[1] / "examples" / "ai-research-manifest.json"
@@ -10,7 +11,7 @@ EXAMPLE = Path(__file__).resolve().parents[1] / "examples" / "ai-research-manife
 
 def test_cli_version(capsys) -> None:
     assert main(["version"]) == 0
-    assert capsys.readouterr().out.strip() == "0.1.0"
+    assert capsys.readouterr().out.strip() == __version__
 
 
 def test_cli_validate_example(capsys) -> None:

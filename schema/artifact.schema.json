@@ -67,7 +67,7 @@
       }
     },
     "policy_ref": { "type": "string", "pattern": "^sha256:" },
-    "decision": { "enum": ["release", "review_needed", "block"] },
+    "decision": { "enum": ["release", "review_needed", "block", "pending"] },
     "missing": { "type": "array", "items": { "type": "string" } }
   }
 }
