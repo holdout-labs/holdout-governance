@@ -203,7 +203,7 @@ GATE_INPUTS_TEMPLATE = """{
     "cmd": ["lf", "check", "--pipeline", "pipeline.json", "--json"]
   },
   "evidence_integrity": {
-    "cmd": ["fl", "verify", "--ledger", "ledger.jsonl"]
+    "cmd": ["fl", "verify", "--state-dir", "ledger"]
   },
   "statistical_quality": {
     "cmd": ["qc", "check", "--returns", "returns.json", "--n-trials", "200", "--json"],

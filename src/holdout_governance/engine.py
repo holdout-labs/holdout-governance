@@ -134,7 +134,7 @@ def run_check(manifest: str, policy: str | None = None, gate_inputs: str | None 
         result["error"] = f"cannot load artifact {manifest}: {exc}"
         return result
     if is_v1_manifest(raw):
-        result["error"] = ("this is a v1 research manifest — use 'gov validate' "
+        result["error"] = ("this is a v1 research manifest - use 'gov validate' "
                            "instead of 'gov check'")
         return result
     try:
@@ -158,7 +158,7 @@ def run_check(manifest: str, policy: str | None = None, gate_inputs: str | None 
 
     policy_ok = artifact.get("policy_ref") == sha256_file(policy_path)
     if not policy_ok:
-        result["warnings"].append(f"policy_ref mismatch — expected {sha256_file(policy_path)}")
+        result["warnings"].append(f"policy_ref mismatch - expected {sha256_file(policy_path)}")
 
     kinds = loaded_policy.get("kinds", {})
     artifact_kind = kind or artifact["artifact"]["kind"]
@@ -213,7 +213,7 @@ def run_attach(
     """Attach evidence to a v0.2 artifact (agent-facing mutation step).
 
     One gate per call (call repeatedly for more). Attaching evidence resets
-    ``decision`` to ``pending`` — the old decision is stale by definition and
+    ``decision`` to ``pending`` - the old decision is stale by definition and
     must be recomputed by ``gov check``.
     """
     result: dict[str, Any] = {"error": None, "exit_code": 0}
@@ -224,7 +224,7 @@ def run_attach(
         result["exit_code"] = 2
         return result
     if is_v1_manifest(raw):
-        result["error"] = "this is a v1 research manifest — use 'gov validate'"
+        result["error"] = "this is a v1 research manifest - use 'gov validate'"
         result["exit_code"] = 2
         return result
     try:

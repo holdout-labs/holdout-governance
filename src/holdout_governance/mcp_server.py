@@ -108,7 +108,7 @@ def build_mcp_server():
             from mcp import FastMCP  # type: ignore[no-redef]
         except ImportError as exc:
             raise ImportError(
-                "mcp not installed — run: pip install 'holdout-governance[mcp]'"
+                "mcp not installed - run: pip install 'holdout-governance[mcp]'"
             ) from exc
 
     mcp = FastMCP("holdout-gov")

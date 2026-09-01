@@ -52,6 +52,20 @@ def test_mcp_server_builds() -> None:
     assert callable(server.run)
 
 
+def test_mcp_command_graceful_without_mcp(monkeypatch, capsys) -> None:
+    """Without the [mcp] extra, `gov mcp` must fail cleanly, not traceback."""
+    import holdout_governance.mcp_server as mcp_module
+
+    from holdout_governance.cli import main
+
+    def _no_mcp():
+        raise ImportError("mcp not installed - run: pip install 'holdout-governance[mcp]'")
+
+    monkeypatch.setattr(mcp_module, "build_mcp_server", _no_mcp)
+    assert main(["mcp"]) == 1
+    assert "mcp not installed" in capsys.readouterr().err
+
+
 def test_mcp_attach_then_check_releases(tmp_path) -> None:
     d = tmp_path / "agent"
     d.mkdir()

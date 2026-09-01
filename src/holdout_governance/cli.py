@@ -35,7 +35,7 @@ def cmd_init(args: argparse.Namespace) -> int:
         return 1
     print(f"init: wrote {', '.join(result['files'])} in {args.dir}")
     print(f"policy_ref: {result['policy_ref']}  "
-          "(matches policy.yml as written — re-hash after edits)")
+          "(matches policy.yml as written - re-hash after edits)")
     return 0
 
 
@@ -95,7 +95,7 @@ def cmd_attach(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps({k: v for k, v in result.items()}, ensure_ascii=False, indent=2))
     else:
-        print(f"attach: {args.manifest} — decision reset to pending (re-run 'gov check')")
+        print(f"attach: {args.manifest} - decision reset to pending (re-run 'gov check')")
         if args.gate:
             print(f"  gate {args.gate}: {args.status}")
         if attachments:
@@ -153,10 +153,11 @@ def cmd_api(args: argparse.Namespace) -> int:
 def cmd_mcp(args: argparse.Namespace) -> int:
     try:
         from .mcp_server import build_mcp_server
+
+        server = build_mcp_server()
     except ImportError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
-    server = build_mcp_server()
     server.run(transport="stdio")
     return 0
 
