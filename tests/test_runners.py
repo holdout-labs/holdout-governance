@@ -89,3 +89,24 @@ def test_steps_fail_closed_on_intermediate_failure(tmp_path) -> None:
     assert result["status"] == "fail"
     content = (tmp_path / "reports" / "g8.report.json").read_text(encoding="utf-8")
     assert json.loads(content) == {"boom": True}
+
+
+def test_warn_verdict_prefix_maps_refusal_to_warn(tmp_path) -> None:
+    spec = {
+        "cmd": [sys.executable, "-c",
+                "import json,sys;print(json.dumps({'verdict': 'FAIL - n_trials must be declared'}));sys.exit(1)"],
+        "warn_verdict_prefix": "FAIL - n_trials",
+    }
+    result = run_gate("g9", spec, tmp_path)
+    assert result["status"] == "warn"
+    assert "refused to judge" in result["reason"]
+
+
+def test_warn_verdict_prefix_does_not_mask_real_failures(tmp_path) -> None:
+    spec = {
+        "cmd": [sys.executable, "-c",
+                "import json,sys;print(json.dumps({'verdict': 'FAIL - P0 blocker(s): dsr'}));sys.exit(1)"],
+        "warn_verdict_prefix": "FAIL - n_trials",
+    }
+    result = run_gate("g10", spec, tmp_path)
+    assert result["status"] == "fail"

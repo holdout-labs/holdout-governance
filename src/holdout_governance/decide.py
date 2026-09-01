@@ -54,6 +54,17 @@ def decide(artifact: dict, policy: dict) -> dict[str, Any]:
             decision = _worse(decision, "block")
             missing.append(f"attachment:{att}")
 
+    # conditional attachments: e.g. public copy that declares return figures
+    # must attach limitations (PRD scenario 3)
+    declarations = artifact.get("declarations", {}) or {}
+    for cond in spec.get("conditional_attachments", []):
+        when = cond.get("when", {}) or {}
+        if all(declarations.get(key) is value for key, value in when.items()):
+            for att in cond.get("require", []):
+                if att not in attachments:
+                    decision = _worse(decision, "block")
+                    missing.append(f"attachment:{att}")
+
     if producer.get("type") == "ai" and review.get("status") != "approved":
         decision = _worse(decision, "block")
         missing.append("review:approved")

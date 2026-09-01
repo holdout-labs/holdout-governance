@@ -20,6 +20,16 @@ def build_report_text(artifact: dict, policy_ok: bool, policy_note: str = "") ->
     )
     lines.append(f"review: {review.get('status', 'not_recorded')}")
     lines.append(f"policy_ref: {'OK' if policy_ok else 'MISMATCH'} {policy_note}".rstrip())
+    attachments = artifact.get("attachments", {}) or {}
+    if attachments:
+        lines.append("attachments:")
+        for key, value in attachments.items():
+            lines.append(f"  {key}: {value}")
+    declarations = artifact.get("declarations", {}) or {}
+    if declarations:
+        lines.append("declarations:")
+        for key, value in declarations.items():
+            lines.append(f"  {key}: {str(value).lower()}")
     lines.append("gates:")
     for gate in artifact.get("gates", []):
         mark = _MARK.get(gate.get("status", "not_run"), "?")

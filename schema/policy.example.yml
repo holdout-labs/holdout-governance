@@ -24,7 +24,10 @@ kinds:
 
   public_copy:
     required_gates: [provenance]
-    required_attachments: [sources, limitations]
+    required_attachments: [sources]
+    conditional_attachments:
+      - when: {contains_returns: true}
+        require: [limitations]
     severity: block
 
   code:

@@ -27,6 +27,7 @@ v0.2 generalizes it to any artifact kind and moves policy out of code into
 | `conclusion` (`research_only`)       | *(dropped)*                           | governed by kind + policy, not a free-text field |
 | *(hardcoded REQUIRED_CHECKS)*        | `policy_ref` + `policy.yml`           | **new**; policy becomes data |
 | *(absent)*                           | `decision` / `missing`                | **new**; `pending` before first check, then written by `gov check` |
+| *(absent)*                           | `declarations`                        | **new**, optional; boolean flags consumed by policy `conditional_attachments` (e.g. `contains_returns` → `limitations`) |
 
 ## Breaking changes
 

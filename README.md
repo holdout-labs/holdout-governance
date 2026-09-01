@@ -68,6 +68,22 @@ samples (survivorship ×3, look-ahead ×3, adjustment drift ×2, missing
 evidence ×2) against the *real* `imm` / `lf` / `padj` binaries — all 10 are
 blocked, zero false passes — plus a clean control that must release.
 
+## Scenarios 2 & 3 (done, M2)
+
+- **strategy_advice** — must carry backtest evidence: `backtest_report` and
+  `robustness_report` attachments, plus the `statistical_quality` gate
+  (real `qc` run). A backtest whose `n_trials` is not declared is a
+  *refusal*, not a failure: `qc` refuses to judge → `review_needed`. A real
+  overfitting blocker (DSR/PBO/haircut/MinTRL) → `block`. Acceptance suite:
+  `tests/test_m2_scenario23.py`.
+- **public_copy** — must carry `sources`; when the copy declares return
+  figures (`declarations.contains_returns`), `limitations` becomes required
+  (conditional attachment, expressed in `policy.yml`, not code). A passing
+  `gov report` prints the attachments and serves as the publication note.
+
+Contract extension (frozen): `artifact.declarations` (boolean flags) and
+policy `conditional_attachments` (`when`/`require`).
+
 ## Fit
 
 Use this package as the wrapper above the existing Holdout tools:

@@ -10,6 +10,7 @@ Semantics (fail-closed):
 from __future__ import annotations
 
 import hashlib
+import json
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -95,6 +96,17 @@ def run_gate(
         status, reason = "pass", ""
     elif proc.returncode == 1:
         status, reason = "fail", stderr[-300:]
+        # optional: a tool that *refuses to judge* (e.g. qc without an
+        # honest n_trials) maps to warn -> review_needed, not hard block
+        prefix = spec.get("warn_verdict_prefix")
+        if prefix:
+            try:
+                verdict = json.loads(stdout).get("verdict", "")
+            except (json.JSONDecodeError, AttributeError):
+                verdict = ""
+            if str(verdict).startswith(prefix):
+                status = "warn"
+                reason = f"tool refused to judge: {verdict[:160]}"
     else:
         status, reason = "not_run", f"exit {proc.returncode}: {stderr[-300:]}"
 

@@ -64,6 +64,10 @@ ARTIFACT_SCHEMA = json.loads(
       "type": "object",
       "additionalProperties": { "type": "string" }
     },
+    "declarations": {
+      "type": "object",
+      "additionalProperties": { "type": "boolean" }
+    },
     "review": {
       "type": "object",
       "properties": {
@@ -117,6 +121,23 @@ POLICY_SCHEMA = json.loads(
             "type": "array",
             "items": { "type": "string" }
           },
+          "conditional_attachments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["when", "require"],
+              "properties": {
+                "when": {
+                  "type": "object",
+                  "additionalProperties": { "type": "boolean" }
+                },
+                "require": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            }
+          },
           "severity": { "enum": ["block", "warn", "info"] },
           "requires_review": { "type": "boolean" }
         }
@@ -153,7 +174,10 @@ kinds:
 
   public_copy:
     required_gates: [provenance]
-    required_attachments: [sources, limitations]
+    required_attachments: [sources]
+    conditional_attachments:
+      - when: {contains_returns: true}
+        require: [limitations]
     severity: block
 
   code:
@@ -182,7 +206,8 @@ GATE_INPUTS_TEMPLATE = """{
     "cmd": ["fl", "verify", "--ledger", "ledger.jsonl"]
   },
   "statistical_quality": {
-    "cmd": ["qc", "check", "--returns", "returns.json", "--trials", "trials.json", "--n-trials", "200", "--json"]
+    "cmd": ["qc", "check", "--returns", "returns.json", "--n-trials", "200", "--json"],
+    "warn_verdict_prefix": "FAIL - n_trials"
   }
 }
 """

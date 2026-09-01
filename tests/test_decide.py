@@ -14,7 +14,7 @@ POLICY = yaml.safe_load(DEFAULT_POLICY)
 
 def _art(kind: str = "research_conclusion", gates: list | None = None,
          producer: str = "human", review: dict | None = None,
-         attachments: dict | None = None) -> dict:
+         attachments: dict | None = None, declarations: dict | None = None) -> dict:
     body = {"type": producer}
     if producer == "ai":
         body.update({"model_id": "m1", "prompt_version": "p1"})
@@ -24,11 +24,12 @@ def _art(kind: str = "research_conclusion", gates: list | None = None,
         "producer": body,
         "gates": gates or [],
         "attachments": attachments or {},
+        "declarations": declarations or {},
         "review": review or {"status": "approved", "reviewer": "r"},
         "safety": {"places_orders": False, "changes_trading_rules": False,
                    "provides_investment_advice": False},
         "policy_ref": "sha256:policy",
-        "decision": "",
+        "decision": "pending",
         "missing": [],
     }
 
@@ -114,3 +115,44 @@ def test_requires_review_blocks_without_approval() -> None:
                           review={"status": "not_recorded", "reviewer": ""}), policy)
     assert outcome["decision"] == "block"
     assert "review:approved" in outcome["missing"]
+
+
+# ---- conditional attachments (M2 scenario 3) ------------------------------
+
+
+def test_conditional_attachment_required_when_declared() -> None:
+    outcome = decide(
+        _art(kind="public_copy", gates=[_gate("provenance", "pass")],
+             attachments={"sources": "s.md"}, declarations={"contains_returns": True}),
+        POLICY,
+    )
+    assert outcome["decision"] == "block"
+    assert "attachment:limitations" in outcome["missing"]
+
+
+def test_conditional_attachment_not_required_without_declaration() -> None:
+    outcome = decide(
+        _art(kind="public_copy", gates=[_gate("provenance", "pass")],
+             attachments={"sources": "s.md"}),
+        POLICY,
+    )
+    assert outcome["decision"] == "release"
+
+
+def test_conditional_attachment_satisfied_releases() -> None:
+    outcome = decide(
+        _art(kind="public_copy", gates=[_gate("provenance", "pass")],
+             attachments={"sources": "s.md", "limitations": "l.md"},
+             declarations={"contains_returns": True}),
+        POLICY,
+    )
+    assert outcome["decision"] == "release"
+
+
+def test_declared_false_does_not_trigger_condition() -> None:
+    outcome = decide(
+        _art(kind="public_copy", gates=[_gate("provenance", "pass")],
+             attachments={"sources": "s.md"}, declarations={"contains_returns": False}),
+        POLICY,
+    )
+    assert outcome["decision"] == "release"

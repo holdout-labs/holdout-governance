@@ -26,6 +26,23 @@
             "type": "array",
             "items": { "type": "string" }
           },
+          "conditional_attachments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["when", "require"],
+              "properties": {
+                "when": {
+                  "type": "object",
+                  "additionalProperties": { "type": "boolean" }
+                },
+                "require": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            }
+          },
           "severity": { "enum": ["block", "warn", "info"] },
           "requires_review": { "type": "boolean" }
         }
