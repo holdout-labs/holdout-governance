@@ -1,0 +1,58 @@
+{
+  "schema_version": "holdout.artifact.v0.2",
+  "artifact": {
+    "id": "momentum-oos-review-2026-09-01",
+    "kind": "research_conclusion",
+    "created_at": "2026-09-01T17:35:25+00:00"
+  },
+  "producer": {
+    "type": "human"
+  },
+  "gates": [
+    {
+      "gate_id": "data_integrity",
+      "tool": "imm",
+      "status": "pass",
+      "report_ref": "sha256:9640a4b027b9389d7832c17b772fa3d976a69b42ca433fe06d36ecd06db37b0f",
+      "tool_version": "",
+      "run_at": "2026-09-01T17:37:23+00:00"
+    },
+    {
+      "gate_id": "pit_integrity",
+      "tool": "padj",
+      "status": "pass",
+      "report_ref": "sha256:a5221d29ce893218e8310014fbaa250cda3f221320165f225ccb7a3cab9c9474",
+      "tool_version": "",
+      "run_at": "2026-09-01T17:37:23+00:00"
+    },
+    {
+      "gate_id": "temporal_integrity",
+      "tool": "lf",
+      "status": "pass",
+      "report_ref": "sha256:27d64cbee95c99fa18704f52b328285bed116a2074a203cf4bb1610e7c9dc73e",
+      "tool_version": "",
+      "run_at": "2026-09-01T17:37:23+00:00"
+    },
+    {
+      "gate_id": "evidence_integrity",
+      "tool": "fl",
+      "status": "pass",
+      "report_ref": "sha256:e36e94c1adfb1df254757564a231bd1e49fac91416c84e16c011ca46ffb34f61",
+      "tool_version": "",
+      "run_at": "2026-09-01T17:37:24+00:00"
+    }
+  ],
+  "attachments": {},
+  "review": {
+    "status": "not_recorded",
+    "reviewer": ""
+  },
+  "safety": {
+    "places_orders": false,
+    "changes_trading_rules": false,
+    "provides_investment_advice": false
+  },
+  "policy_ref": "sha256:cef808012806375c16ef8bda92488a0bac449e95570efd863bdbc6215194ee81",
+  "decision": "release",
+  "missing": []
+}

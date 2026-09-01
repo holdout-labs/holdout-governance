@@ -1,0 +1,58 @@
+{
+  "name": "factor-pipeline",
+  "operations": [
+    {
+      "op_id": "quotes",
+      "kind": "read",
+      "release": "2026-07-31T16:00:00",
+      "outputs": ["quotes"],
+      "note": "T-1 daily bars published after the previous close"
+    },
+    {
+      "op_id": "fundamentals",
+      "kind": "pit_read",
+      "read_cutoff": "2026-07-31T00:00:00",
+      "outputs": ["fundamentals"],
+      "note": "point-in-time fundamentals: only records available before August"
+    },
+    {
+      "op_id": "momentum",
+      "kind": "window",
+      "window_end": "2026-08-01T15:00:00",
+      "inputs": ["quotes"],
+      "outputs": ["momentum"],
+      "note": "20-day momentum computed over a window ending before the decision"
+    },
+    {
+      "op_id": "volatility",
+      "kind": "window",
+      "window_end": "2026-08-01T15:00:00",
+      "inputs": ["quotes"],
+      "outputs": ["volatility"],
+      "note": "value-independent resampling of the same window"
+    },
+    {
+      "op_id": "features",
+      "kind": "join",
+      "inputs": ["momentum", "volatility", "fundamentals"],
+      "outputs": ["features"],
+      "note": "join keys are time-aligned by construction (same decision horizon)"
+    },
+    {
+      "op_id": "agent_retrieval",
+      "kind": "transform",
+      "value_dependent": true,
+      "inputs": ["features"],
+      "outputs": ["retrieved"],
+      "note": "agentic retrieval: value-dependent semantics -> heuristic boundary (P1)"
+    },
+    {
+      "op_id": "decide",
+      "kind": "decision",
+      "decision_time": "2026-08-01T15:00:00",
+      "inputs": ["retrieved"],
+      "outputs": ["signal"],
+      "note": "the only place a decision is made; everything it consumes must be available by 15:00"
+    }
+  ]
+}

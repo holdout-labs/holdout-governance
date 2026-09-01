@@ -54,6 +54,32 @@ gov validate --manifest examples/ai-research-manifest.json
 gov report --manifest examples/ai-research-manifest.json
 ```
 
+## Real end-to-end demo (verified 2026-09-02)
+
+`examples/gov-demo/` is a complete, runnable chain: it executes the **real**
+`imm` / `padj` / `lf` / `fl` binaries through `gov check`, then shows the
+hash-chain catching a tampered ledger and blocking the release:
+
+```bash
+cd examples/gov-demo
+./run-demo.sh        # Linux / macOS
+.\run-demo.ps1       # Windows PowerShell
+```
+
+What you should see:
+
+```
+1. GREEN PATH   gov check -> decision: release (exit 0)   # 4 gates, real tools
+2. TAMPER       append a fake event to ledger.jsonl
+3. RED PATH     gov check -> decision: block (exit 2)     # hash chain detected it
+4. RESTORE      gov check -> decision: release (exit 0)   # restored
+```
+
+The demo directory contains the fixture data (A-share bars, adjustment
+actions, a factor pipeline, a pre-registered claim) plus the generated
+`policy.yml` and `artifact.json`, so the flow is fully reproducible with
+`pip install` of the six Holdout tools and `gov`.
+
 ## Contract (v0.2, frozen)
 
 The governance contract lives in `schema/` and is locked by tests:
