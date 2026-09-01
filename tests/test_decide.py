@@ -78,6 +78,24 @@ def test_warn_plus_missing_still_blocks() -> None:
     assert outcome["decision"] == "block"
 
 
+def test_missing_gate_default_can_downgrade_to_review_needed() -> None:
+    policy = copy.deepcopy(POLICY)
+    policy["defaults"]["missing_gate"] = "review_needed"
+    outcome = decide(_art(gates=_all_pass()[:3]), policy)
+    assert outcome["decision"] == "review_needed"
+    assert "gate:evidence_integrity" in outcome["missing"]
+
+
+def test_warn_default_can_block_when_kind_allows_it() -> None:
+    policy = copy.deepcopy(POLICY)
+    policy["defaults"]["gate_warn"] = "block"
+    gates = _all_pass()
+    gates[1] = _gate("pit_integrity", "warn")
+    outcome = decide(_art(gates=gates), policy)
+    assert outcome["decision"] == "block"
+    assert "gate:pit_integrity" in outcome["warns"]
+
+
 def test_missing_attachment_blocks() -> None:
     outcome = decide(_art(kind="strategy_advice", gates=_all_pass()), POLICY)
     assert outcome["decision"] == "block"
@@ -103,7 +121,10 @@ def test_unknown_kind_blocks() -> None:
 
 def test_warn_severity_kind_downgrades_instead_of_blocking() -> None:
     # kind "code" has severity: warn -> a failing gate must NOT hard-block
-    outcome = decide(_art(kind="code", gates=[_gate("temporal_integrity", "fail")]), POLICY)
+    policy = copy.deepcopy(POLICY)
+    policy["defaults"]["missing_gate"] = "block"
+    policy["defaults"]["gate_warn"] = "block"
+    outcome = decide(_art(kind="code", gates=[_gate("temporal_integrity", "fail")]), policy)
     assert outcome["decision"] == "review_needed"
     assert "gate:temporal_integrity" in outcome["missing"]
 

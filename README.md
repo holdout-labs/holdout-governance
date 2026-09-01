@@ -1,8 +1,8 @@
 # Holdout Governance
 
-Fail-closed evidence manifests for financial AI research.
+Fail-closed evidence manifests for financial AI research and AI-generated outputs.
 
-`holdout-governance` records one research run as a small JSON manifest:
+`holdout-governance` records one research run or AI-generated output as a small JSON manifest:
 
 - what evidence artifacts were used;
 - the latest allowed timestamp for the decision;
@@ -14,13 +14,31 @@ Fail-closed evidence manifests for financial AI research.
 It is a local validation tool. It does not fetch market data, call a model,
 place orders, or give investment advice.
 
-## Why the name
+## Philosophy
 
 Part of the [Holdout](https://github.com/holdout-labs) toolchain — the
-governance layer. A *holdout set* is the data you don't touch until the very
-end; a *holdout juror* is the one who won't go along until the evidence is
-in. This package is the juror: one manifest, one verdict, before anything
-ships.
+governance layer. The name comes from the holdout set and the holdout juror:
+the thing you do not touch early, and the person who does not go along until
+the evidence is in.
+
+The product philosophy is:
+
+- evidence before assertion;
+- default deny when evidence is missing;
+- policy as data, not hard-coded judgment;
+- AI may propose, but humans still approve release.
+
+That means one manifest, one verdict, before anything ships.
+
+## Product flow
+
+This package is the wrapper above the other Holdout tools. The main flow is:
+
+`data -> adjust -> timing -> backtest -> falsify -> review -> publish`
+
+`holdout-governance` sits across that flow as the final release gate. It
+records what was checked, what was attached, what remains missing, and whether
+the result is approved for release.
 
 ## Quick start
 

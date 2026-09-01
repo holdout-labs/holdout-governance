@@ -1,28 +1,48 @@
-# Holdout Governance（治理层）
+﻿# Holdout Governance（治理层）
+**金融 AI 研究与 AI 产物的 fail-closed 证据清单（evidence manifest）。**
 
-**金融 AI 研究的 fail-closed 证据清单（evidence manifest）。**
-
-`holdout-governance` 把一次研究过程记录成一份小型 JSON 清单：
-
+`holdout-governance` 把一次研究或一次 AI 产物记录成一份小型 JSON 清单：
 - 用了哪些证据工件；
 - 决策允许的最新时间戳；
 - 哪些检查通过了；
-- 是否用了 AI、用的哪个 prompt 版本；
+- 是否使用了 AI，以及用的哪版 prompt；
 - 是否有人审批；
-- 结果仅限研究用途。
+- 结果是否仅限研究用途。
 
-它是本地校验工具：**不拉行情、不调模型、不下单、不给投资建议。**
+它是本地校验工具，不拉行情、不调模型、不下单，也不给投资建议。
 
-## 为什么叫这个名字
+## 哲学
 
-[Holdout](https://github.com/holdout-labs) 工具链的治理层。*holdout set* 是
-你直到最后都不碰的数据；*holdout juror* 是那个证据没到齐就不肯随大流的
-陪审员。这个包就是那个陪审员：一个清单、一个判定、发布之前先过堂。
+[Holdout](https://github.com/holdout-labs) 是工具链的治理层。名字来自 holdout set 和 holdout juror：
+前者是你在最后之前不碰的数据，后者是证据没齐就不点头的人。
+
+这层的原则很简单：
+- 先有证据，再做判断；
+- 证据缺失，默认拦住；
+- 规则写成数据，不写死在代码里；
+- AI 可以提议，最终发布仍要人确认。
+
+所以它做的是“一份清单、一个结论、再决定能不能发”。
+
+## 产品链路
+
+这个包是现有 Holdout 工具之上的包装层。主链路是：
+
+`data -> adjust -> timing -> backtest -> falsify -> review -> publish`
+
+`holdout-governance` 横跨这条链路，充当最后的发布门禁。它记录检查了什么、挂了什么证据、还缺什么，以及结果能不能发布。
+
+## 我们不做什么
+
+- 不拉行情，不调模型，不下单。
+- 不替代回测引擎。
+- 不自动发布，最终发布权仍在人。
+- 不把一次通过当作盈利证明。
 
 ## 快速上手
 
 ```bash
-python -m pip install -e .[test] pytest
+python -m pip install -e . pytest
 python examples/demo.py
 ```
 
@@ -35,12 +55,12 @@ gov report --manifest examples/ai-research-manifest.json
 
 ## 契约（v0.2，已冻结）
 
-契约在 `schema/`，由测试锁定：
+治理契约在 `schema/`，由测试锁定：
 
 - [`schema/artifact.schema.json`](schema/artifact.schema.json) — `holdout.artifact.v0.2`
 - [`schema/policy.schema.json`](schema/policy.schema.json) + [`schema/policy.example.yml`](schema/policy.example.yml) — `holdout.policy.v0.1`
-- [`examples/artifact.example.json`](examples/artifact.example.json) — 一份合规的 `research_conclusion` 示例
-- [`docs/migration-v1-to-v0.2.md`](docs/migration-v1-to-v0.2.md) — v1 清单的升级路径
+- [`examples/artifact.example.json`](examples/artifact.example.json) — 一个合规的 `research_conclusion` 示例
+- [`docs/migration-v1-to-v0.2.md`](docs/migration-v1-to-v0.2.md) — v1 清单升级路径
 
 ## gov check — 场景 1（M1，已完成）
 
@@ -139,3 +159,4 @@ gov attach --manifest research/artifact.json --review approved --reviewer resear
 python -m pip install -e .[test] pytest
 python -m pytest
 ```
+
