@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/holdout-labs/holdout-governance/blob/main/schema/policy.schema.json",
+  "title": "holdout policy v0.1",
+  "description": "Policy-as-data: what gates and attachments each artifact kind requires, and how missing/warned items are treated.",
+  "type": "object",
+  "required": ["schema_version", "kinds", "defaults"],
+  "properties": {
+    "schema_version": {
+      "const": "holdout.policy.v0.1"
+    },
+    "kinds": {
+      "type": "object",
+      "propertyNames": {
+        "enum": ["research_conclusion", "strategy_advice", "public_copy", "code"]
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["required_gates", "severity"],
+        "properties": {
+          "required_gates": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "required_attachments": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "severity": { "enum": ["block", "warn", "info"] },
+          "requires_review": { "type": "boolean" }
+        }
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "missing_gate": { "enum": ["block", "review_needed"] },
+        "gate_warn": { "enum": ["block", "review_needed"] }
+      }
+    }
+  }
+}

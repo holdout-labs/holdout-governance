@@ -1,0 +1,36 @@
+{
+  "schema_version": "holdout_governance.research_manifest.v1",
+  "research_id": "momentum-oos-review-2026-09-01",
+  "scope": {
+    "purpose": "research_only",
+    "decision_cutoff": "2026-09-01T15:00:00+08:00"
+  },
+  "inputs": [
+    {
+      "artifact_id": "sha256:38d7db75548d1810113970802329252788f03f1f9390f5cf2355f76e3844c291",
+      "source": "approved daily-bar snapshot",
+      "as_of": "2026-09-01T15:00:00+08:00"
+    }
+  ],
+  "checks": [
+    {"check_id": "data_integrity", "tool": "ashare-data-immunity", "status": "passed"},
+    {"check_id": "temporal_integrity", "tool": "lookahead-free", "status": "passed"},
+    {"check_id": "evidence_integrity", "tool": "falsification-ledger", "status": "passed"},
+    {"check_id": "statistical_quality", "tool": "factor-qc", "status": "passed"}
+  ],
+  "agent": {
+    "used": true,
+    "model_id": "research-agent-1",
+    "prompt_version": "2026-09-01.1"
+  },
+  "review": {
+    "status": "approved",
+    "reviewer": "research-owner"
+  },
+  "safety": {
+    "places_orders": false,
+    "changes_trading_rules": false,
+    "provides_investment_advice": false
+  },
+  "conclusion": "research_only"
+}

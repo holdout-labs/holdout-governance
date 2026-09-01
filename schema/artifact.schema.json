@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/holdout-labs/holdout-governance/blob/main/schema/artifact.schema.json",
+  "title": "holdout artifact v0.2",
+  "description": "Evidence manifest for any research artifact (conclusion, strategy advice, public copy, code). Evolved from grand_truth_governance.research_manifest.v1 — see docs/migration-v1-to-v0.2.md.",
+  "type": "object",
+  "required": ["schema_version", "artifact", "producer", "gates", "policy_ref", "decision"],
+  "properties": {
+    "schema_version": {
+      "const": "holdout.artifact.v0.2"
+    },
+    "artifact": {
+      "type": "object",
+      "required": ["id", "kind", "created_at"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": {
+          "enum": ["research_conclusion", "strategy_advice", "public_copy", "code"]
+        },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "producer": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["ai", "human", "hybrid"] },
+        "model_id": { "type": "string", "minLength": 1 },
+        "prompt_version": { "type": "string", "minLength": 1 },
+        "input_refs": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^sha256:" }
+        }
+      }
+    },
+    "gates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["gate_id", "tool", "status"],
+        "properties": {
+          "gate_id": { "type": "string", "minLength": 1 },
+          "tool": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["pass", "fail", "warn", "not_run"] },
+          "report_ref": { "type": "string" },
+          "tool_version": { "type": "string" }
+        }
+      }
+    },
+    "attachments": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "review": {
+      "type": "object",
+      "properties": {
+        "status": { "enum": ["approved", "not_recorded"] },
+        "reviewer": { "type": "string" }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "properties": {
+        "places_orders": { "const": false },
+        "changes_trading_rules": { "const": false },
+        "provides_investment_advice": { "const": false }
+      }
+    },
+    "policy_ref": { "type": "string", "pattern": "^sha256:" },
+    "decision": { "enum": ["release", "review_needed", "block"] },
+    "missing": { "type": "array", "items": { "type": "string" } }
+  }
+}

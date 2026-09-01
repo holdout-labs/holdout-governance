@@ -1,0 +1,59 @@
+{
+  "schema_version": "holdout.artifact.v0.2",
+  "artifact": {
+    "id": "momentum-oos-review-2026-09-01",
+    "kind": "research_conclusion",
+    "created_at": "2026-09-01T15:00:00+08:00"
+  },
+  "producer": {
+    "type": "ai",
+    "model_id": "research-agent-1",
+    "prompt_version": "2026-09-01.1",
+    "input_refs": [
+      "sha256:38d7db75548d1810113970802329252788f03f1f9390f5cf2355f76e3844c291"
+    ]
+  },
+  "gates": [
+    {
+      "gate_id": "data_integrity",
+      "tool": "ashare-data-immunity",
+      "status": "pass",
+      "report_ref": "sha256:report-data-integrity",
+      "tool_version": "0.1.1"
+    },
+    {
+      "gate_id": "pit_integrity",
+      "tool": "pit-adjuster",
+      "status": "pass",
+      "report_ref": "sha256:report-pit-integrity",
+      "tool_version": "0.1.1"
+    },
+    {
+      "gate_id": "temporal_integrity",
+      "tool": "lookahead-free",
+      "status": "pass",
+      "report_ref": "sha256:report-temporal-integrity",
+      "tool_version": "0.1.1"
+    },
+    {
+      "gate_id": "evidence_integrity",
+      "tool": "falsification-ledger",
+      "status": "pass",
+      "report_ref": "sha256:report-evidence-integrity",
+      "tool_version": "0.1.1"
+    }
+  ],
+  "attachments": {},
+  "review": {
+    "status": "approved",
+    "reviewer": "research-owner"
+  },
+  "safety": {
+    "places_orders": false,
+    "changes_trading_rules": false,
+    "provides_investment_advice": false
+  },
+  "policy_ref": "sha256:policy.yml",
+  "decision": "release",
+  "missing": []
+}

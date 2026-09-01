@@ -1,0 +1,36 @@
+# Holdout policy — example (v0.1)
+
+# The decision function (see PRD §3.3):
+#   decision = release
+#   for gate in kinds[<kind>].required_gates:
+#       status = artifact.gates[gate].status          # missing counts as not_run
+#       if status in (fail, not_run):  decision = block; missing.append(gate)
+#       if status == warn:             decision = max(decision, review_needed)
+#   for att in kinds[<kind>].required_attachments:
+#       if att not in artifact.attachments:  decision = block; missing.append(att)
+#   if producer.type == "ai" and review.status != "approved":  decision = block
+
+schema_version: holdout.policy.v0.1
+
+kinds:
+  research_conclusion:
+    required_gates: [data_integrity, pit_integrity, temporal_integrity, evidence_integrity]
+    severity: block
+
+  strategy_advice:
+    required_gates: [data_integrity, temporal_integrity, statistical_quality, evidence_integrity]
+    required_attachments: [backtest_report, robustness_report]
+    severity: block
+
+  public_copy:
+    required_gates: [provenance]
+    required_attachments: [sources, limitations]
+    severity: block
+
+  code:
+    required_gates: [temporal_integrity]
+    severity: warn
+
+defaults:
+  missing_gate: block
+  gate_warn: review_needed
