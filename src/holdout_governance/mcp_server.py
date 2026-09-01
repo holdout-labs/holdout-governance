@@ -61,6 +61,44 @@ def mcp_gov_init(directory: str, kind: str = "research_conclusion",
     return _json(engine.run_init(directory, kind=kind, name=name))
 
 
+def mcp_gov_attach(manifest: str, gate: str | None = None, status: str | None = None,
+                   tool: str = "", report_ref: str = "",
+                   attachment: str | None = None,
+                   declaration: str | None = None,
+                   review: str | None = None, reviewer: str = "") -> str:
+    """Attach evidence to an artifact before running gov_check.
+
+    Args:
+        manifest: path to artifact.json (v0.2)
+        gate: gate_id to record (with status)
+        status: pass|fail|warn|not_run
+        tool: tool name that produced the evidence
+        report_ref: evidence reference, e.g. sha256:...
+        attachment: "name=value" to attach (e.g. sources=docs/sources.md)
+        declaration: "name=true|false" to declare (e.g. contains_returns=true)
+        review: approved|not_recorded
+        reviewer: human reviewer name
+
+    Returns:
+        JSON with the updated gates/attachments/declarations/review. The
+        decision is reset to pending — run gov_check afterwards.
+    """
+    attachments = {}
+    if attachment and "=" in attachment:
+        key, _, value = attachment.partition("=")
+        attachments[key.strip()] = value.strip()
+    declarations = {}
+    if declaration and "=" in declaration:
+        key, _, value = declaration.partition("=")
+        if value in ("true", "false"):
+            declarations[key.strip()] = value == "true"
+    return _json(engine.run_attach(
+        manifest, gate=gate, status=status, tool=tool, report_ref=report_ref,
+        attachments=attachments, declarations=declarations,
+        review=review, reviewer=reviewer,
+    ))
+
+
 def build_mcp_server():
     """Build the FastMCP server (imports mcp lazily)."""
     try:
@@ -87,4 +125,7 @@ def build_mcp_server():
               "Read-only governance assessment of a research artifact.")
     _register(mcp_gov_init, "gov_init",
               "Scaffold a holdout policy + artifact project in a directory.")
+    _register(mcp_gov_attach, "gov_attach",
+              "Attach gate evidence / attachments / review to an artifact "
+              "(resets decision to pending).")
     return mcp

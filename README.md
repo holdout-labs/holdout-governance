@@ -63,6 +63,23 @@ gov check --manifest research/artifact.json
 gov report --manifest research/artifact.json   # human-readable
 ```
 
+## gov attach (done)
+
+Attach evidence to an artifact before checking — the agent workflow:
+
+```bash
+gov attach --manifest research/artifact.json \
+  --gate data_integrity --status pass --tool imm --report-ref sha256:...
+gov attach --manifest research/artifact.json --attachment sources=docs/sources.md
+gov attach --manifest research/artifact.json --declaration contains_returns=true
+gov attach --manifest research/artifact.json --review approved --reviewer research-owner
+```
+
+Attaching evidence **resets `decision` to `pending`** — a decision is only as
+good as the evidence it was computed from, so any evidence change invalidates
+it until the next `gov check`. The same operation is exposed to agents as the
+`gov_attach` MCP tool.
+
 The acceptance suite (`tests/test_m1_scenario1.py`) runs 10 seeded-defect
 samples (survivorship ×3, look-ahead ×3, adjustment drift ×2, missing
 evidence ×2) against the *real* `imm` / `lf` / `padj` binaries — all 10 are
@@ -97,7 +114,7 @@ policy `conditional_attachments` (`when`/`require`).
   # .pre-commit-config.yaml
   repos:
     - repo: https://github.com/holdout-labs/holdout-governance
-      rev: v0.3.0
+      rev: v0.4.0
       hooks:
         - id: gov-check
   ```
@@ -106,8 +123,8 @@ policy `conditional_attachments` (`when`/`require`).
   - `gov api --port 8000` — stdlib HTTP JSON API: `GET /health`,
     `POST /check` / `/report` / `/init` (no extra dependencies).
   - `gov mcp` — MCP stdio server (`pip install 'holdout-governance[mcp]'`)
-    exposing `gov_check`, `gov_report`, `gov_init` tools for Claude /
-    Cursor / any MCP client.
+    exposing `gov_check`, `gov_report`, `gov_init`, `gov_attach` tools for
+    Claude / Cursor / any MCP client.
 
 ## Fit
 

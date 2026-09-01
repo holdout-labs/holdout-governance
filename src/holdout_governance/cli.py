@@ -60,6 +60,53 @@ def cmd_check(args: argparse.Namespace) -> int:
     return worst
 
 
+def cmd_attach(args: argparse.Namespace) -> int:
+    attachments = {}
+    for item in args.attachment or []:
+        name, _, value = item.partition("=")
+        if not name or not value:
+            print(f"error: --attachment expects NAME=VALUE, got {item!r}", file=sys.stderr)
+            return 2
+        attachments[name.strip()] = value.strip()
+    declarations = {}
+    for item in args.declaration or []:
+        name, _, value = item.partition("=")
+        if name and value in ("true", "false"):
+            declarations[name.strip()] = value == "true"
+        else:
+            print(f"error: --declaration expects NAME=true|false, got {item!r}", file=sys.stderr)
+            return 2
+    result = engine.run_attach(
+        args.manifest,
+        gate=args.gate,
+        status=args.status,
+        tool=args.tool,
+        report_ref=args.report_ref,
+        tool_version=args.tool_version,
+        reason=args.reason,
+        attachments=attachments,
+        review=args.review,
+        reviewer=args.reviewer,
+        declarations=declarations,
+    )
+    if result.get("error"):
+        print(f"error: {result['error']}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps({k: v for k, v in result.items()}, ensure_ascii=False, indent=2))
+    else:
+        print(f"attach: {args.manifest} — decision reset to pending (re-run 'gov check')")
+        if args.gate:
+            print(f"  gate {args.gate}: {args.status}")
+        if attachments:
+            print(f"  attachments: {', '.join(f'{k}={v}' for k, v in attachments.items())}")
+        if declarations:
+            print(f"  declarations: {', '.join(f'{k}={v}' for k, v in declarations.items())}")
+        if args.review:
+            print(f"  review: {args.review} ({args.reviewer})")
+    return 0
+
+
 def cmd_report(args: argparse.Namespace) -> int:
     result = engine.run_report(args.manifest, policy=args.policy)
     if result.get("error"):
@@ -146,6 +193,25 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--policy", default=None, help="policy.yml path (default: next to manifest)")
     report.add_argument("--json", action="store_true", help="machine-readable output")
 
+    attach = sub.add_parser("attach", help="attach evidence to an artifact (resets decision)")
+    attach.add_argument("--manifest", required=True, help="artifact JSON path")
+    attach.add_argument("--gate", default=None, help="gate_id to record")
+    attach.add_argument("--status", default=None,
+                        choices=["pass", "fail", "warn", "not_run"],
+                        help="gate status (required with --gate)")
+    attach.add_argument("--tool", default="", help="tool name for the gate")
+    attach.add_argument("--report-ref", default="", help="evidence reference (e.g. sha256:...)")
+    attach.add_argument("--tool-version", default="", help="tool version")
+    attach.add_argument("--reason", default=None, help="short reason (fail/not_run)")
+    attach.add_argument("--attachment", action="append", default=None,
+                        help="NAME=VALUE attachment (repeatable)")
+    attach.add_argument("--declaration", action="append", default=None,
+                        help="NAME=true|false declaration (repeatable)")
+    attach.add_argument("--review", default=None, choices=["approved", "not_recorded"],
+                        help="human review status")
+    attach.add_argument("--reviewer", default="", help="reviewer name")
+    attach.add_argument("--json", action="store_true", help="machine-readable output")
+
     validate = sub.add_parser("validate", help="validate a v1 research evidence manifest")
     validate.add_argument("--manifest", required=True, help="manifest JSON path")
     validate.add_argument("--json", action="store_true", help="machine-readable output")
@@ -173,6 +239,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_check(args)
     if args.command == "report":
         return cmd_report(args)
+    if args.command == "attach":
+        return cmd_attach(args)
     if args.command == "validate":
         return cmd_validate(args)
     if args.command == "api":

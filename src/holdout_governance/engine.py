@@ -192,6 +192,95 @@ def run_check(manifest: str, policy: str | None = None, gate_inputs: str | None 
 
 
 # --------------------------------------------------------------------------
+# attach
+# --------------------------------------------------------------------------
+
+
+def run_attach(
+    manifest: str,
+    *,
+    gate: str | None = None,
+    status: str | None = None,
+    tool: str = "",
+    report_ref: str = "",
+    tool_version: str = "",
+    reason: str | None = None,
+    attachments: dict[str, str] | None = None,
+    review: str | None = None,
+    reviewer: str = "",
+    declarations: dict[str, bool] | None = None,
+) -> dict[str, Any]:
+    """Attach evidence to a v0.2 artifact (agent-facing mutation step).
+
+    One gate per call (call repeatedly for more). Attaching evidence resets
+    ``decision`` to ``pending`` — the old decision is stale by definition and
+    must be recomputed by ``gov check``.
+    """
+    result: dict[str, Any] = {"error": None, "exit_code": 0}
+    try:
+        raw = _load_raw(manifest)
+    except Exception as exc:
+        result["error"] = f"cannot load artifact {manifest}: {exc}"
+        result["exit_code"] = 2
+        return result
+    if is_v1_manifest(raw):
+        result["error"] = "this is a v1 research manifest — use 'gov validate'"
+        result["exit_code"] = 2
+        return result
+    try:
+        artifact = load_artifact(manifest)
+    except Exception as exc:
+        result["error"] = f"cannot load artifact {manifest}: {exc}"
+        result["exit_code"] = 2
+        return result
+
+    valid_statuses = ("pass", "fail", "warn", "not_run")
+    if gate is not None:
+        if status not in valid_statuses:
+            result["error"] = f"invalid gate status {status!r} (expected one of {valid_statuses})"
+            result["exit_code"] = 2
+            return result
+        artifact = merge_gate_result(artifact, gate, {
+            "status": status,
+            "tool": tool or "manual",
+            "report_ref": report_ref,
+            "tool_version": tool_version,
+            "run_at": _now(),
+            "reason": reason,
+        })
+
+    if attachments:
+        existing = artifact.get("attachments", {}) or {}
+        existing.update(attachments)
+        artifact["attachments"] = existing
+
+    if declarations:
+        existing = artifact.get("declarations", {}) or {}
+        existing.update(declarations)
+        artifact["declarations"] = existing
+
+    if review is not None:
+        if review not in ("approved", "not_recorded"):
+            result["error"] = f"invalid review status {review!r} (expected approved|not_recorded)"
+            result["exit_code"] = 2
+            return result
+        artifact["review"] = {"status": review, "reviewer": reviewer}
+
+    # evidence changed -> any previous decision is stale
+    artifact["decision"] = "pending"
+    artifact["missing"] = []
+    save_artifact(manifest, artifact)
+
+    result.update(
+        gates=_gate_summary(artifact),
+        attachments=artifact.get("attachments", {}),
+        declarations=artifact.get("declarations", {}),
+        review=artifact.get("review", {}),
+    )
+    return result
+
+
+# --------------------------------------------------------------------------
 # report
 # --------------------------------------------------------------------------
 
