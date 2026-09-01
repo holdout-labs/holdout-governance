@@ -1,0 +1,34 @@
+name: "Holdout gov check"
+description: "Run the fail-closed evidence check on a research artifact (block on missing evidence)."
+inputs:
+  manifest:
+    description: "Path to the artifact.json (v0.2) to check"
+    required: true
+  policy:
+    description: "Path to policy.yml (default: next to the manifest)"
+    required: false
+    default: ""
+  gate-inputs:
+    description: "Path to gate-inputs.json (default: next to the manifest)"
+    required: false
+    default: ""
+  python-version:
+    description: "Python version for the tool"
+    required: false
+    default: "3.11"
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+    - name: Install holdout-governance
+      shell: bash
+      run: pip install holdout-governance
+    - name: gov check
+      shell: bash
+      run: |
+        args="--manifest ${{ inputs.manifest }}"
+        if [ -n "${{ inputs.policy }}" ]; then args="$args --policy ${{ inputs.policy }}"; fi
+        if [ -n "${{ inputs.gate-inputs }}" ]; then args="$args --gate-inputs ${{ inputs.gate-inputs }}"; fi
+        gov check $args

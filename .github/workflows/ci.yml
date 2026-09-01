@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: pip install -e ".[test]"
+      - name: Run tests
+        run: python -m pytest
+
+  cli-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: pip install -e .
+      - name: Version
+        run: gov version
+      - name: Scaffold and check (fail-closed without evidence)
+        run: |
+          gov init --dir /tmp/demo --name smoke
+          gov check --manifest /tmp/demo/artifact.json; code=$?
+          # no gate evidence yet -> the gate chain must refuse (exit 2)
+          test $code -eq 2 && echo "fail-closed OK (blocked as expected)"
+      - name: Report
+        run: gov report --manifest /tmp/demo/artifact.json --json

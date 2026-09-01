@@ -1,12 +1,14 @@
 """Command-line interface for Holdout research governance.
 
-Subcommands (v0.2 artifacts):
+Subcommands:
 
-- ``init``                 generate policy.yml + gate-inputs.json + artifact.json
-- ``check``                run required gates (optional), decide, write back
-- ``report``               human-readable decision report
-- ``validate``             legacy v1 research-manifest validation
-- ``version``              print version
+- ``init``       generate policy.yml + gate-inputs.json + artifact.json
+- ``check``      run required gates (optional), decide, write back
+- ``report``     human-readable decision report (v1 or v0.2)
+- ``validate``   legacy v1 research-manifest validation
+- ``api``        serve the HTTP JSON API (stdlib, no extra deps)
+- ``mcp``        serve the MCP stdio server (needs the [mcp] extra)
+- ``version``    print version
 """
 
 from __future__ import annotations
@@ -14,233 +16,71 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from pathlib import Path
-from typing import Any
 
 from . import __version__
-from ._schemas import (
-    ARTIFACT_SCHEMA_VERSION,
-    DEFAULT_POLICY,
-    GATE_INPUTS_TEMPLATE,
-)
-from .artifact import is_v1_manifest, load_artifact, merge_gate_result, save_artifact
-from .contracts import build_report, validate_manifest
-from .decide import decide
-from .policy import load_policy, sha256_file
+from . import engine
+from .contracts import validate_manifest
 from .report import build_report_text, summary_json
-from .runners import run_gate
-
-_EXIT = {"release": 0, "review_needed": 1, "block": 2}
-_SAFETY = {
-    "places_orders": False,
-    "changes_trading_rules": False,
-    "provides_investment_advice": False,
-}
 
 
-def _now() -> str:
-    from datetime import datetime, timezone
-
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
-
-
-# --------------------------------------------------------------------------
-# v0.2: init / check / report
-# --------------------------------------------------------------------------
-
-
-def _load_raw_manifest(path: str) -> dict:
-    """Load any JSON manifest (v1 or v0.2) without schema validation."""
-    value = json.loads(Path(path).read_text(encoding="utf-8"))
-    if not isinstance(value, dict):
-        raise ValueError(f"expected a JSON object: {path}")
-    return value
-
-
-def _load_manifest_or_exit(manifest: str, *, v1_ok: bool) -> tuple[dict | None, int | None]:
-    path = Path(manifest)
-    try:
-        raw = _load_raw_manifest(manifest)
-    except Exception as exc:  # includes ValueError + JSONDecodeError
-        print(f"error: cannot load artifact {manifest}: {exc}", file=sys.stderr)
-        return None, 2
-    if is_v1_manifest(raw):
-        if v1_ok:
-            return raw, None
-        print(
-            "error: this is a v1 research manifest — use 'gov validate' instead of 'gov check'",
-            file=sys.stderr,
-        )
-        return None, 2
-    try:
-        artifact = load_artifact(path)
-    except Exception as exc:
-        print(f"error: cannot load artifact {manifest}: {exc}", file=sys.stderr)
-        return None, 2
-    if artifact.get("schema_version") != ARTIFACT_SCHEMA_VERSION:
-        print(
-            f"error: unsupported schema_version {artifact.get('schema_version')!r}",
-            file=sys.stderr,
-        )
-        return None, 2
-    return artifact, None
+def _emit_warnings(warnings: list[str]) -> None:
+    for warning in warnings:
+        print(f"warning: {warning}", file=sys.stderr)
 
 
 def cmd_init(args: argparse.Namespace) -> int:
-    out = Path(args.dir)
-    out.mkdir(parents=True, exist_ok=True)
-
-    policy_path = out / "policy.yml"
-    if policy_path.exists():
-        policy_ref = sha256_file(policy_path)
-    else:
-        policy_path.write_text(DEFAULT_POLICY, encoding="utf-8")
-        policy_ref = sha256_file(policy_path)
-
-    gate_inputs = out / "gate-inputs.json"
-    if not gate_inputs.exists():
-        gate_inputs.write_text(GATE_INPUTS_TEMPLATE, encoding="utf-8")
-
-    artifact_path = out / "artifact.json"
-    if artifact_path.exists():
-        print(f"artifact.json already exists: {artifact_path} (not overwritten)")
-    else:
-        artifact = {
-            "schema_version": ARTIFACT_SCHEMA_VERSION,
-            "artifact": {
-                "id": args.name or f"artifact-{_now().replace(':', '').replace('+', 'Z')[:19]}",
-                "kind": args.kind,
-                "created_at": _now(),
-            },
-            "producer": {"type": "human"},
-            "gates": [],
-            "attachments": {},
-            "review": {"status": "not_recorded", "reviewer": ""},
-            "safety": dict(_SAFETY),
-            "policy_ref": policy_ref,
-            "decision": "pending",
-            "missing": [],
-        }
-        save_artifact(artifact_path, artifact)
-
-    print(f"init: wrote policy.yml, gate-inputs.json, artifact.json in {out}")
-    print(f"policy_ref: {policy_ref}  (matches policy.yml as written — re-hash after edits)")
+    result = engine.run_init(args.dir, kind=args.kind, name=args.name)
+    if result.get("error"):
+        print(f"error: {result['error']}", file=sys.stderr)
+        return 1
+    print(f"init: wrote {', '.join(result['files'])} in {args.dir}")
+    print(f"policy_ref: {result['policy_ref']}  "
+          "(matches policy.yml as written — re-hash after edits)")
     return 0
 
 
-def _load_gate_inputs(base: Path, arg: str | None) -> dict:
-    path = Path(arg) if arg else base / "gate-inputs.json"
-    if not path.exists():
-        return {}
-    value = json.loads(path.read_text(encoding="utf-8"))
-    return value if isinstance(value, dict) else {}
-
-
 def cmd_check(args: argparse.Namespace) -> int:
-    base = Path(args.manifest).parent
-    artifact, err = _load_manifest_or_exit(args.manifest, v1_ok=False)
-    if artifact is None:
-        return err  # type: ignore[return-value]
-
-    policy_path = Path(args.policy) if args.policy else base / "policy.yml"
-    if not policy_path.exists():
-        print(f"error: policy not found: {policy_path} (generate with 'gov init')", file=sys.stderr)
-        return 2
-    try:
-        policy = load_policy(policy_path)
-    except Exception as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 2
-
-    policy_ok = artifact.get("policy_ref") == sha256_file(policy_path)
-    if not policy_ok:
-        print(
-            f"warning: policy_ref mismatch — expected {sha256_file(policy_path)}",
-            file=sys.stderr,
-        )
-
-    kind = args.kind or artifact["artifact"]["kind"]
-    kinds = policy.get("kinds", {})
-    if kind not in kinds:
-        print(f"error: no policy for kind {kind!r}", file=sys.stderr)
-        return 2
-
-    gate_inputs = _load_gate_inputs(base, args.gate_inputs)
-    for gate_id in kinds[kind].get("required_gates", []):
-        if gate_id in gate_inputs:
-            result = run_gate(gate_id, gate_inputs[gate_id], base)
-            artifact = merge_gate_result(artifact, gate_id, result)
-
-    outcome = decide(artifact, policy)
-    artifact["decision"] = outcome["decision"]
-    artifact["missing"] = outcome["missing"]
-    if not policy_ok:
-        artifact["decision"] = "block"
-        artifact["missing"] = artifact["missing"] + ["policy:ref_mismatch"]
-
-    save_artifact(args.manifest, artifact)
-
-    if args.json:
-        print(json.dumps(summary_json(artifact, policy_ok), ensure_ascii=False, indent=2))
-    else:
-        print(build_report_text(artifact, policy_ok))
-    return _EXIT[artifact["decision"]]
+    worst = 0
+    for manifest in args.manifest:
+        result = engine.run_check(manifest, policy=args.policy,
+                                  gate_inputs=args.gate_inputs, kind=args.kind)
+        if args.json:
+            if result.get("error"):
+                print(json.dumps({"manifest": manifest, "error": result["error"]}))
+            else:
+                print(json.dumps(summary_json(result["artifact"], result["policy_ref_ok"]),
+                                 ensure_ascii=False, indent=2))
+        else:
+            if result.get("error"):
+                print(f"error: {result['error']}", file=sys.stderr)
+            else:
+                _emit_warnings(result["warnings"])
+                print(build_report_text(result["artifact"], result["policy_ref_ok"]))
+        worst = max(worst, result["exit_code"])
+    return worst
 
 
 def cmd_report(args: argparse.Namespace) -> int:
-    artifact, err = _load_manifest_or_exit(args.manifest, v1_ok=True)
-    if artifact is None:
-        return err  # type: ignore[return-value]
-    if is_v1_manifest(artifact):
-        report = build_report(artifact)
-        print(json.dumps(report, indent=2))
-        return 0 if report["passed"] else 1
-
-    base = Path(args.manifest).parent
-    policy_path = Path(args.policy) if args.policy else base / "policy.yml"
-    if policy_path.exists():
-        try:
-            policy = load_policy(policy_path)
-            policy_ok = artifact.get("policy_ref") == sha256_file(policy_path)
-            outcome = decide(artifact, policy)
-            if not policy_ok:
-                outcome = {
-                    "decision": "block",
-                    "missing": outcome["missing"] + ["policy:ref_mismatch"],
-                    "warns": outcome["warns"],
-                }
-        except Exception as exc:
-            policy_ok, outcome = False, {
-                "decision": "block",
-                "missing": [f"policy:error:{exc}"],
-                "warns": [],
-            }
-    else:
-        policy_ok, outcome = False, {"decision": "block", "missing": ["policy:file"], "warns": []}
-    artifact["decision"] = outcome["decision"]
-    artifact["missing"] = outcome["missing"]
+    result = engine.run_report(args.manifest, policy=args.policy)
+    if result.get("error"):
+        print(f"error: {result['error']}", file=sys.stderr)
+        return 2
+    if result["v1"]:
+        print(json.dumps(result["report"], indent=2))
+        return result["exit_code"]
     if args.json:
-        print(json.dumps(summary_json(artifact, policy_ok), ensure_ascii=False, indent=2))
+        print(json.dumps(summary_json(result["artifact"], result["policy_ref_ok"]),
+                         ensure_ascii=False, indent=2))
     else:
-        print(build_report_text(artifact, policy_ok))
-    return _EXIT.get(artifact["decision"], 2)
-
-
-# --------------------------------------------------------------------------
-# legacy v1
-# --------------------------------------------------------------------------
-
-
-def _load_manifest(path: str) -> dict[str, Any]:
-    value = json.loads(Path(path).read_text(encoding="utf-8"))
-    if not isinstance(value, dict):
-        raise ValueError(f"expected a JSON object: {path}")
-    return value
+        print(build_report_text(result["artifact"], result["policy_ref_ok"]))
+    return result["exit_code"]
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
     try:
-        manifest = _load_manifest(args.manifest)
+        from .engine import _load_raw
+
+        manifest = _load_raw(args.manifest)
     except Exception as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -256,7 +96,22 @@ def cmd_validate(args: argparse.Namespace) -> int:
     return 0 if not blockers else 1
 
 
-# --------------------------------------------------------------------------
+def cmd_api(args: argparse.Namespace) -> int:
+    from .api import run_server
+
+    run_server(host=args.host, port=args.port)
+    return 0
+
+
+def cmd_mcp(args: argparse.Namespace) -> int:
+    try:
+        from .mcp_server import build_mcp_server
+    except ImportError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    server = build_mcp_server()
+    server.run(transport="stdio")
+    return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -276,7 +131,7 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--name", default=None, help="artifact id (default: generated)")
 
     check = sub.add_parser("check", help="run required gates, decide, write back")
-    check.add_argument("--manifest", required=True, help="artifact JSON path")
+    check.add_argument("--manifest", nargs="+", required=True, help="artifact JSON path(s)")
     check.add_argument("--policy", default=None, help="policy.yml path (default: next to manifest)")
     check.add_argument(
         "--gate-inputs",
@@ -294,6 +149,12 @@ def build_parser() -> argparse.ArgumentParser:
     validate = sub.add_parser("validate", help="validate a v1 research evidence manifest")
     validate.add_argument("--manifest", required=True, help="manifest JSON path")
     validate.add_argument("--json", action="store_true", help="machine-readable output")
+
+    api = sub.add_parser("api", help="serve the HTTP JSON API")
+    api.add_argument("--host", default="127.0.0.1")
+    api.add_argument("--port", type=int, default=8000)
+
+    sub.add_parser("mcp", help="serve the MCP stdio server (agents)")
 
     sub.add_parser("version", help="print version")
     return parser
@@ -314,6 +175,10 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_report(args)
     if args.command == "validate":
         return cmd_validate(args)
+    if args.command == "api":
+        return cmd_api(args)
+    if args.command == "mcp":
+        return cmd_mcp(args)
     parser.error(f"unknown command: {args.command}")
     return 2
 

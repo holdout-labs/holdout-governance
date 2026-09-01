@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "holdout-governance"
-version = "0.2.0"
+version = "0.3.0"
 description = "Fail-closed evidence manifests for financial AI research."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -28,6 +28,7 @@ holdout-governance = "holdout_governance.cli:main"
 
 [project.optional-dependencies]
 test = ["jsonschema", "pyyaml"]
+mcp = ["mcp"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

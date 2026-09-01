@@ -1,0 +1,7 @@
+- id: gov-check
+  name: holdout gov check
+  description: "Fail-closed evidence check for research artifacts: missing evidence blocks the commit."
+  entry: gov check --manifest
+  language: python
+  files: '^.*artifact\.json$'
+  pass_filenames: true

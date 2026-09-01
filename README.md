@@ -84,6 +84,31 @@ blocked, zero false passes — plus a clean control that must release.
 Contract extension (frozen): `artifact.declarations` (boolean flags) and
 policy `conditional_attachments` (`when`/`require`).
 
+## Release integration (done, M3)
+
+- **CI** — `.github/workflows/ci.yml`: pytest matrix (3.11/3.12) + a
+  fail-closed smoke (scaffold → `gov check` must exit 2 without evidence).
+- **Reusable action** — `.github/actions/gov-check`: composite action that
+  runs `gov check` on any artifact in your workflows.
+- **pre-commit hook** — `.pre-commit-hooks.yaml`: `gov check --manifest`
+  on every `artifact.json`; a block refuses the commit. Wire it with:
+
+  ```yaml
+  # .pre-commit-config.yaml
+  repos:
+    - repo: https://github.com/holdout-labs/holdout-governance
+      rev: v0.3.0
+      hooks:
+        - id: gov-check
+  ```
+
+- **Agent interface** — two ways to call gov from code/agents:
+  - `gov api --port 8000` — stdlib HTTP JSON API: `GET /health`,
+    `POST /check` / `/report` / `/init` (no extra dependencies).
+  - `gov mcp` — MCP stdio server (`pip install 'holdout-governance[mcp]'`)
+    exposing `gov_check`, `gov_report`, `gov_init` tools for Claude /
+    Cursor / any MCP client.
+
 ## Fit
 
 Use this package as the wrapper above the existing Holdout tools:
