@@ -1,4 +1,4 @@
-﻿# Holdout Governance（治理层）
+# Holdout Governance（治理层）
 **金融 AI 研究与 AI 产物的 fail-closed 证据清单（evidence manifest）。**
 
 `holdout-governance` 把一次研究或一次 AI 产物记录成一份小型 JSON 清单：
@@ -97,6 +97,26 @@ gov attach --manifest research/artifact.json --review approved --reviewer resear
 挂证据会**把 `decision` 重置为 `pending`**——判定只对生成它的证据有效，
 证据一变，判定作废，必须重新 `gov check`。同样的操作对 agent 暴露为
 `gov_attach` MCP 工具。
+
+## 稳定的证据指纹（已完成）
+
+`report_ref` 是门禁工具输出的 `sha256:` 指纹。部分工具会在输出里盖运行时
+戳（如 `imm audit` 的 `checked_at` / `audit_date`），导致同一份数据重跑一次
+指纹就变、`artifact.json` 每次都是噪音 diff。门禁配置可以声明这些易变字段：
+
+```json
+{
+  "data_integrity": {
+    "cmd": ["imm", "audit", "--watchlist", "watchlist.json", "--history-root", "history", "--audit-root", "audit"],
+    "volatile_keys": ["audit_date", "checked_at"]
+  }
+}
+```
+
+`volatile_keys` 会在哈希前从 JSON 中（递归）剥离这些字段，键排序后得到
+规范形式。**原始**工具输出仍作为门禁报告落盘，真实运行时间仍记录在门禁
+条目的 `run_at` 里——什么都不丢，只是噪音不再改变指纹。非 JSON 输出
+保持逐字节哈希不变。
 
 ## 场景 2 & 3（M2，已完成）
 

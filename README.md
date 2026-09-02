@@ -124,6 +124,28 @@ good as the evidence it was computed from, so any evidence change invalidates
 it until the next `gov check`. The same operation is exposed to agents as the
 `gov_attach` MCP tool.
 
+## Stable evidence fingerprints (done)
+
+`report_ref` is a `sha256:` of the gate's tool output. Some tools stamp their
+output with run-time fields (`imm audit` emits `checked_at` / `audit_date`),
+so re-running the same check on the same data would change the fingerprint
+and dirty every `artifact.json` diff. Gate specs can declare those fields:
+
+```json
+{
+  "data_integrity": {
+    "cmd": ["imm", "audit", "--watchlist", "watchlist.json", "--history-root", "history", "--audit-root", "audit"],
+    "volatile_keys": ["audit_date", "checked_at"]
+  }
+}
+```
+
+`volatile_keys` are stripped (deep) from the JSON before hashing, with keys
+sorted for a canonical form. The **raw** tool output is still persisted as
+the gate report and the real run time stays in the gate entry's `run_at` —
+nothing is lost, only the noise stops changing the fingerprint. Non-JSON
+output keeps its byte-exact hash.
+
 The acceptance suite (`tests/test_m1_scenario1.py`) runs 10 seeded-defect
 samples (survivorship ×3, look-ahead ×3, adjustment drift ×2, missing
 evidence ×2) against the *real* `imm` / `lf` / `padj` binaries — all 10 are

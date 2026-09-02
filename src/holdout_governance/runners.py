@@ -34,6 +34,49 @@ def _not_run(reason: str, tool: str) -> dict:
     }
 
 
+def _drop_keys(value, volatile: set[str]):
+    """Return ``value`` with every dict key in ``volatile`` removed (deep)."""
+    if isinstance(value, dict):
+        return {k: _drop_keys(v, volatile) for k, v in value.items() if k not in volatile}
+    if isinstance(value, list):
+        return [_drop_keys(v, volatile) for v in value]
+    return value
+
+
+def canonical_report_ref(text: str, volatile_keys: list[str]) -> str | None:
+    """Stable evidence fingerprint: sha256 of the JSON with volatile fields
+    (timestamps such as ``checked_at``) stripped and keys sorted.
+
+    Returns None when ``text`` is not a single JSON document - the caller
+    then falls back to hashing the raw bytes, so non-JSON tool output keeps
+    the byte-exact fingerprint.
+    """
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        return None
+    cleaned = _drop_keys(parsed, set(volatile_keys))
+    canonical = json.dumps(cleaned, ensure_ascii=False, sort_keys=True)
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return f"sha256:{digest}"
+
+
+def _fingerprint(stdout: str, spec: dict) -> str:
+    """report_ref for a gate run.
+
+    With ``volatile_keys`` configured, fields like ``checked_at`` are
+    normalized away before hashing: re-running the same tool on the same
+    data yields the same fingerprint, so artifact.json diffs stay clean.
+    The raw tool output is still persisted as the gate report.
+    """
+    volatile = spec.get("volatile_keys")
+    if isinstance(volatile, list) and volatile:
+        normalized = canonical_report_ref(stdout, [str(k) for k in volatile])
+        if normalized is not None:
+            return normalized
+    return "sha256:" + hashlib.sha256(stdout.encode("utf-8")).hexdigest()
+
+
 def run_gate(
     gate_id: str,
     spec: dict,
@@ -86,7 +129,7 @@ def run_gate(
     ext = ".json" if stdout.lstrip()[:1] in ("{", "[") else ".txt"
     report_path = reports_dir / f"{gate_id}.report{ext}"
     report_path.write_text(stdout, encoding="utf-8")
-    report_ref = "sha256:" + hashlib.sha256(stdout.encode("utf-8")).hexdigest()
+    report_ref = _fingerprint(stdout, spec)
     try:
         rel = str(report_path.relative_to(base_dir))
     except ValueError:

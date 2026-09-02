@@ -191,7 +191,8 @@ defaults:
 
 GATE_INPUTS_TEMPLATE = """{
   "data_integrity": {
-    "cmd": ["imm", "audit", "--watchlist", "watchlist.json", "--history-root", "history", "--audit-root", "audit"]
+    "cmd": ["imm", "audit", "--watchlist", "watchlist.json", "--history-root", "history", "--audit-root", "audit"],
+    "volatile_keys": ["audit_date", "checked_at"]
   },
   "pit_integrity": {
     "steps": [
