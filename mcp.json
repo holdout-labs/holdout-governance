@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "holdout-governance": {
+      "command": "gov",
+      "args": ["mcp"]
+    }
+  }
+}
