@@ -22,10 +22,10 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def _not_run(reason: str) -> dict:
+def _not_run(reason: str, tool: str) -> dict:
     return {
         "status": "not_run",
-        "tool": "",
+        "tool": tool,
         "report_ref": "",
         "report_path": "",
         "tool_version": "",
@@ -52,7 +52,7 @@ def run_gate(
     elif spec.get("cmd"):
         steps = [spec["cmd"]]
     else:
-        return _not_run("no cmd/steps configured for gate")
+        return _not_run("no cmd/steps configured for gate", "unknown")
     cwd = Path(spec.get("cwd") or base_dir)
     if not cwd.is_absolute():
         cwd = Path(base_dir) / cwd
@@ -60,7 +60,7 @@ def run_gate(
     proc = None
     for cmd in steps:
         if not cmd:
-            return _not_run("empty step in gate")
+            return _not_run("empty step in gate", "unknown")
         try:
             proc = subprocess.run(
                 cmd,
@@ -70,9 +70,9 @@ def run_gate(
                 timeout=timeout,
             )
         except FileNotFoundError:
-            return _not_run(f"command not found: {cmd[0]}")
+            return _not_run(f"command not found: {cmd[0]}", cmd[0])
         except subprocess.TimeoutExpired:
-            return _not_run(f"timeout after {timeout:g}s")
+            return _not_run(f"timeout after {timeout:g}s", cmd[0])
         if proc.returncode != 0:
             break
     assert proc is not None

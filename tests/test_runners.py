@@ -50,12 +50,16 @@ def test_missing_command_is_not_run(tmp_path) -> None:
     result = run_gate("g4", {"cmd": ["definitely-not-a-real-tool-xyz"]}, tmp_path)
     assert result["status"] == "not_run"
     assert "not found" in result["reason"]
+    # tool must stay non-empty (schema: minLength 1) so the artifact
+    # remains valid for `gov report` after a fail-closed check
+    assert result["tool"] == "definitely-not-a-real-tool-xyz"
 
 
 def test_no_cmd_is_not_run(tmp_path) -> None:
     result = run_gate("g5", {}, tmp_path)
     assert result["status"] == "not_run"
     assert "no cmd" in result["reason"]
+    assert result["tool"] == "unknown"
 
 
 def test_non_json_output_uses_txt_extension(tmp_path) -> None:
