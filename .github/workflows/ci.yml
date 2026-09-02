@@ -45,5 +45,14 @@ jobs:
             echo "unexpected exit code: $code (expected 2)"
             exit 1
           fi
-      - name: Report
-        run: gov report --manifest /tmp/demo/artifact.json --json
+      - name: Report (fail-closed report must exit 2)
+        run: |
+          gov report --manifest /tmp/demo/artifact.json --json || code=$?
+          code=${code:-0}
+          # blocked artifact -> report exits 2 by design (fail-closed)
+          if [ "$code" -eq 2 ]; then
+            echo "report OK (fail-closed exit 2 as expected)"
+          else
+            echo "unexpected exit code: $code (expected 2)"
+            exit 1
+          fi
