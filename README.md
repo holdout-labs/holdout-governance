@@ -2,6 +2,12 @@
 
 Fail-closed evidence manifests for financial AI research and AI-generated outputs.
 
+[![PyPI version](https://img.shields.io/pypi/v/holdout-governance)](https://pypi.org/project/holdout-governance)
+[![Python](https://img.shields.io/pypi/pyversions/holdout-governance)](https://pypi.org/project/holdout-governance)
+[![CI](https://img.shields.io/github/actions/workflow/status/holdout-labs/holdout-governance/ci.yml)](https://github.com/holdout-labs/holdout-governance/actions)
+[![License: MIT](https://img.shields.io/github/license/holdout-labs/holdout-governance)](LICENSE)
+[![Glama score](https://glama.ai/mcp/servers/holdout-labs/holdout-governance/badges/score.svg)](https://glama.ai/mcp/servers/holdout-labs/holdout-governance)
+
 `holdout-governance` records one research run or AI-generated output as a small JSON manifest:
 
 - what evidence artifacts were used;
