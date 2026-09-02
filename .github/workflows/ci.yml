@@ -32,10 +32,18 @@ jobs:
       - name: Version
         run: gov version
       - name: Scaffold and check (fail-closed without evidence)
+        # Note: GitHub Actions runs `bash -e` by default, so an expected
+        # non-zero exit must be captured via `||`, not `; code=$?`.
         run: |
           gov init --dir /tmp/demo --name smoke
-          gov check --manifest /tmp/demo/artifact.json; code=$?
+          gov check --manifest /tmp/demo/artifact.json || code=$?
+          code=${code:-0}
           # no gate evidence yet -> the gate chain must refuse (exit 2)
-          test $code -eq 2 && echo "fail-closed OK (blocked as expected)"
+          if [ "$code" -eq 2 ]; then
+            echo "fail-closed OK (blocked as expected)"
+          else
+            echo "unexpected exit code: $code (expected 2)"
+            exit 1
+          fi
       - name: Report
         run: gov report --manifest /tmp/demo/artifact.json --json

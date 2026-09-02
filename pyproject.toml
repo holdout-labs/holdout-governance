@@ -28,7 +28,7 @@ gov = "holdout_governance.cli:main"
 holdout-governance = "holdout_governance.cli:main"
 
 [project.optional-dependencies]
-test = []
+test = ["pytest", "numpy"]
 mcp = ["mcp<2"]  # mcp 2.x renamed FastMCP -> MCPServer; code targets the v1 API
 
 [tool.setuptools.packages.find]
