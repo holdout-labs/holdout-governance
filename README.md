@@ -101,11 +101,11 @@ action step fails — which is the point: nothing ships without evidence.
 
 ```yaml
 steps:
-  - uses: holdout-labs/holdout-governance@v0.4.0
+  - uses: holdout-labs/holdout-governance@v0.4.2
     with:
       manifest: research/artifact.json     # path to your artifact.json
       # policy: research/policy.yml        # optional; defaults to beside the manifest
-      # ref: v0.4.0                        # install ref (default: main)
+      # ref: v0.4.2                        # install ref (default: main)
 ```
 
 Notes:
