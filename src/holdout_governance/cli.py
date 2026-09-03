@@ -217,6 +217,10 @@ def build_parser() -> argparse.ArgumentParser:
     validate.add_argument("--manifest", required=True, help="manifest JSON path")
     validate.add_argument("--json", action="store_true", help="machine-readable output")
 
+    health = sub.add_parser("health", help="fail-closed ledger health (jsonl) check")
+    health.add_argument("--ledger", required=True, help="ledger JSONL path")
+    health.add_argument("--json", action="store_true", help="machine-readable output")
+
     api = sub.add_parser("api", help="serve the HTTP JSON API")
     api.add_argument("--host", default="127.0.0.1")
     api.add_argument("--port", type=int, default=8000)
@@ -244,6 +248,20 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_attach(args)
     if args.command == "validate":
         return cmd_validate(args)
+    if args.command == "health":
+        from .health import check_ledger
+
+        report = check_ledger(args.ledger)
+        if args.json:
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+        else:
+            print(f"ledger: {report['path']}  lines={report['lines']}  "
+                  f"ok={report['ok']}  legacy_reanchored={report['legacy_reanchored']}")
+            for issue in report["issues"]:
+                print(f" issue line {issue['line']}: {issue['reason']}")
+            for blocker in report.get("blockers") or []:
+                print(f" blocker: {blocker}")
+        return 0 if report["ok"] else 1
     if args.command == "api":
         return cmd_api(args)
     if args.command == "mcp":

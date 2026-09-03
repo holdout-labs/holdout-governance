@@ -60,6 +60,13 @@ gov validate --manifest examples/ai-research-manifest.json
 gov report --manifest examples/ai-research-manifest.json
 ```
 
+Check ledger health (fail-closed: bad json / duplicate ids / hash-chain
+breaks / out-of-order timestamps):
+
+```bash
+gov health --ledger examples/gov-demo/ledger/ledger.jsonl
+```
+
 ## Real end-to-end demo (verified 2026-09-02)
 
 `examples/gov-demo/` is a complete, runnable chain: it executes the **real**
