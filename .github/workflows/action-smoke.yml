@@ -1,0 +1,45 @@
+name: action-smoke
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Scaffold a fresh policy + artifact
+        shell: bash
+        run: |
+          pip install -e .
+          rm -rf /tmp/gov-action-fixture
+          gov init --dir /tmp/gov-action-fixture --name smoke
+          # no gate evidence yet -> gov report must refuse (exit 2, fail-closed)
+          gov report --manifest /tmp/gov-action-fixture/artifact.json --json || code=$?
+          if [ "${code:-0}" -ne 2 ]; then
+            echo "expected fail-closed exit 2, got ${code:-0}"
+            exit 1
+          fi
+
+      - name: Run the reusable action (expect fail-closed block)
+        id: gate
+        continue-on-error: true
+        uses: ./
+        with:
+          manifest: /tmp/gov-action-fixture/artifact.json
+
+      - name: Assert the gate failed closed
+        shell: bash
+        run: |
+          echo "gate outcome: ${{ steps.gate.outcome }}"
+          if [ "${{ steps.gate.outcome }}" != "failure" ]; then
+            echo "expected the action to block (no evidence present) - it did not"
+            exit 1
+          fi
+          echo "action fail-closed OK"

@@ -93,6 +93,31 @@ actions, a factor pipeline, a pre-registered claim) plus the generated
 `policy.yml` and `artifact.json`, so the flow is fully reproducible with
 `pip install` of the six Holdout tools and `gov`.
 
+## GitHub Action (fail-closed gate in CI)
+
+`holdout-labs/holdout-governance` is a reusable action that runs `gov check`
+on your manifest. When the gate chain blocks (missing or stale evidence), the
+action step fails — which is the point: nothing ships without evidence.
+
+```yaml
+steps:
+  - uses: holdout-labs/holdout-governance@v0.4.0
+    with:
+      manifest: research/artifact.json     # path to your artifact.json
+      # policy: research/policy.yml        # optional; defaults to beside the manifest
+      # ref: v0.4.0                        # install ref (default: main)
+```
+
+Notes:
+
+- Install is `pip install git+https://github.com/holdout-labs/holdout-governance.git@<ref>`;
+  pin `ref` to a release tag for reproducibility (default: `main`).
+- The gate needs its evidence tools on `PATH` (`imm` / `padj` / `lf` / `fl`)
+  to ever pass; without them it **fails closed by design**. The tools live in
+  the sibling repos: `falsification-ledger`, `pit-adjuster`, `factor-qc`,
+  `lookahead-free`, `ashare-data-immunity`.
+- Exit codes: `0` = release, `1` = review needed, `2` = block.
+
 ## Contract (v0.2, frozen)
 
 The governance contract lives in `schema/` and is locked by tests:

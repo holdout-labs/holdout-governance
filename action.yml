@@ -1,0 +1,50 @@
+name: holdout-governance / gov check
+description: >-
+  Fail-closed governance gate for research artifacts (policy.yml +
+  artifact.json). Runs `gov check`; the step fails when the gate chain blocks
+  (missing or stale evidence), which is the point.
+
+author: holdout-labs
+
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  manifest:
+    description: >-
+      Path to artifact.json to check, relative to the workspace root
+      (can be the path written by `gov check`/`gov adjudicate`).
+    required: true
+  policy:
+    description: Path to policy.yml (default: beside the manifest)
+    required: false
+    default: ""
+  ref:
+    description: >-
+      Git ref of holdout-governance to install (default: main; pin to a
+      release tag such as v0.4.0 for reproducibility)
+    required: false
+    default: main
+  python-version:
+    description: Python version used to run gov (>= 3.11)
+    required: false
+    default: "3.11"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install holdout-governance
+      shell: bash
+      run: pip install "git+https://github.com/holdout-labs/holdout-governance.git@${{ inputs.ref }}"
+
+    - name: Run gov check (fail-closed gate)
+      shell: bash
+      run: >-
+        gov check --manifest "${{ inputs.manifest }}"
+        ${{ inputs.policy != '' && format('--policy {0}', inputs.policy) || '' }}
