@@ -1,0 +1,11 @@
+# holdout-governance
+
+> Fail-closed governance gate for research artifacts (policy.yml + artifact.json): evidence manifests, policy gates, one check before anything ships. Ships as a CLI (`gov`), a reusable GitHub Action, a pre-commit hook and an MCP server. MIT, Python 3.11+.
+
+- GitHub: https://github.com/holdout-labs/holdout-governance
+- PyPI: https://pypi.org/project/holdout-governance/
+- Install: `pip install holdout-governance`
+- Reusable GitHub Action: `uses: holdout-labs/holdout-governance@v0.4.2`
+- Commands: `gov init`, `gov check`, `gov report`, `gov attach`, `gov mcp`, `gov version`
+- Contract: artifact schema v0.2 (frozen), fail-closed exit codes (0 = release, 1 = review needed, 2 = block)
+- Full documentation: https://github.com/holdout-labs/holdout-governance/blob/main/README.md
