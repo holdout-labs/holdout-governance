@@ -142,6 +142,14 @@ def mcp_gov_attach(
         str,
         Field(description="Evidence reference for the report file, e.g. sha256:<hex> or a relative path."),
     ] = "",
+    evidence_source: Annotated[
+        str | None,
+        Field(description="Attest which data lineage the gate evidence rests on (e.g. feed id or input file). Two pass gates on the SAME source and SAME data_cutoff are NOT independent evidence and will block."),
+    ] = None,
+    data_cutoff: Annotated[
+        str | None,
+        Field(description="Attest the data time the evidence reflects, ISO-8601 (distinct from run time). A cutoff later than the attach run is impossible and will block."),
+    ] = None,
     attachment: Annotated[
         str | None,
         Field(description="Attachment as name=value, e.g. sources=docs/sources.md. Repeat by calling again."),
@@ -181,6 +189,7 @@ def mcp_gov_attach(
             declarations[key.strip()] = value == "true"
     return _json(engine.run_attach(
         manifest, gate=gate, status=status, tool=tool, report_ref=report_ref,
+        evidence_source=evidence_source, data_cutoff=data_cutoff,
         attachments=attachments, declarations=declarations,
         review=review, reviewer=reviewer,
     ))

@@ -43,7 +43,15 @@
           "tool": { "type": "string", "minLength": 1 },
           "status": { "enum": ["pass", "fail", "warn", "not_run"] },
           "report_ref": { "type": "string" },
-          "tool_version": { "type": "string" }
+          "tool_version": { "type": "string" },
+          "evidence_source": {
+            "type": "string",
+            "description": "Optional attestation: which data lineage the gate evidence rests on (same source must not confirm twice)"
+          },
+          "data_cutoff": {
+            "type": "string",
+            "description": "Optional attestation: the data time the evidence reflects (must not be later than run_at)"
+          }
         }
       }
     },

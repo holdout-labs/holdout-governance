@@ -101,11 +101,11 @@ action step fails — which is the point: nothing ships without evidence.
 
 ```yaml
 steps:
-  - uses: holdout-labs/holdout-governance@v0.4.2
+  - uses: holdout-labs/holdout-governance@v0.4.3
     with:
       manifest: research/artifact.json     # path to your artifact.json
       # policy: research/policy.yml        # optional; defaults to beside the manifest
-      # ref: v0.4.2                        # install ref (default: main)
+      # ref: v0.4.3                        # install ref (default: main)
 ```
 
 Notes:
@@ -189,6 +189,48 @@ samples (survivorship ×3, look-ahead ×3, adjustment drift ×2, missing
 evidence ×2) against the *real* `imm` / `lf` / `padj` binaries — all 10 are
 blocked, zero false passes — plus a clean control that must release.
 
+## Evidence semantics (done)
+
+Two attestation failures found by a production evidence grill (2026-09) are
+machine-checkable on the manifest: *same-source evidence counted as
+independent* and *a claimed data cutoff later than the run that produced
+it* (a `now - lag` stamp pretending to be a historical section).
+
+Gate entries may attest two optional fields (`gov attach`, CLI or MCP):
+
+```bash
+gov attach --manifest research/artifact.json --gate pit_integrity \
+  --status pass --tool padj --report-ref sha256:... \
+  --evidence-source feed-a --data-cutoff 2026-09-06T14:59:00+08:00
+```
+
+- `evidence_source` — which data lineage the gate evidence rests on;
+- `data_cutoff` — the data time the evidence reflects (not the run time).
+
+Attestation is **opt-in**: an artifact that declares neither field anywhere
+keeps the legacy semantics (a placeholder `report_ref` may legitimately
+back several gate entries in manual-attach flows). Once any gate attests,
+`gov check` / `gov report` enforce these rules fail-closed on the whole
+artifact:
+
+- `duplicate_evidence_content` — two gate entries with the same
+  `report_ref`: the same bytes counted twice;
+- `data_cutoff_after_run_at` — declared data time later than the run that
+  produced the evidence: impossible by construction;
+- `same_source_slice_not_independent` — two `pass` gates declaring the same
+  `evidence_source` *and* the same `data_cutoff`: one time slice cannot
+  confirm twice, whatever the byte content (volatile stamps differ, the
+  information does not);
+- warnings (not blockers): `same_source_multiple` (sequential slices from
+  one source are complementary, not independent) and
+  `attestation_incomplete` (a cutoff without a source cannot be checked).
+
+Run the same check standalone (read-only):
+
+```bash
+gov evidence --manifest research/artifact.json
+```
+
 ## Scenarios 2 & 3 (done, M2)
 
 - **strategy_advice** — must carry backtest evidence: `backtest_report` and
@@ -218,7 +260,7 @@ policy `conditional_attachments` (`when`/`require`).
   # .pre-commit-config.yaml
   repos:
     - repo: https://github.com/holdout-labs/holdout-governance
-      rev: v0.4.2
+      rev: v0.4.3
       hooks:
         - id: gov-check
   ```

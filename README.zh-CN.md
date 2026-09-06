@@ -118,6 +118,44 @@ gov attach --manifest research/artifact.json --review approved --reviewer resear
 条目的 `run_at` 里——什么都不丢，只是噪音不再改变指纹。非 JSON 输出
 保持逐字节哈希不变。
 
+## 证据语义（已完成）
+
+2026-09 一次生产证据核对暴露了两类可在 manifest 上机器校验的失败：
+*同源证据被当成独立证据*，以及*声称的数据截止时点晚于产出它的那次运行*
+（用 `now − lag` 冒充历史截面）。
+
+门禁条目可以（可选）声明两个 attestation 字段（`gov attach`，CLI 或 MCP）：
+
+```bash
+gov attach --manifest research/artifact.json --gate pit_integrity \
+  --status pass --tool padj --report-ref sha256:... \
+  --evidence-source feed-a --data-cutoff 2026-09-06T14:59:00+08:00
+```
+
+- `evidence_source` — 该门禁证据依赖哪条数据血缘（同源不得二次确证）；
+- `data_cutoff` — 证据所反映的数据时点（不是运行时刻）。
+
+Attestation 是**自愿加入（opt-in）**：任何门禁都没声明这两个字段的
+artifact 维持旧语义（手动挂证据时一个占位 `report_ref` 合法地背靠多个
+门禁条目）。一旦任一门禁声明，`gov check` / `gov report` 就在整个
+artifact 上强制以下规则（fail-closed）：
+
+- `duplicate_evidence_content` — 两个门禁条目带同一个 `report_ref`：
+  同一份字节被数了两次；
+- `data_cutoff_after_run_at` — 声明的数据时点晚于产出它的运行时刻：
+  构造上不可能；
+- `same_source_slice_not_independent` — 两条 `pass` 门禁声明相同的
+  `evidence_source` **且**相同的 `data_cutoff`：同一个时间切片不能确证
+  两次，无论字节内容如何（易变戳不同，信息相同）；
+- 警告（不拦截）：`same_source_multiple`（同一来源的连续切片互补但不
+  独立）与 `attestation_incomplete`（有截止没来源，无法核独立）。
+
+单独只读运行同一检查：
+
+```bash
+gov evidence --manifest research/artifact.json
+```
+
 ## 场景 2 & 3（M2，已完成）
 
 - **strategy_advice（策略建议）** — 必须挂回测证据：`backtest_report` 和
@@ -146,7 +184,7 @@ gov attach --manifest research/artifact.json --review approved --reviewer resear
   # .pre-commit-config.yaml
   repos:
     - repo: https://github.com/holdout-labs/holdout-governance
-      rev: v0.4.2
+      rev: v0.4.3
       hooks:
         - id: gov-check
   ```

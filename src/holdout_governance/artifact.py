@@ -42,6 +42,10 @@ def merge_gate_result(artifact: dict, gate_id: str, result: dict) -> dict:
         "tool_version": result.get("tool_version", ""),
         "run_at": result.get("run_at", ""),
     }
+    if result.get("evidence_source"):
+        entry["evidence_source"] = str(result["evidence_source"])
+    if result.get("data_cutoff"):
+        entry["data_cutoff"] = str(result["data_cutoff"])
     if result.get("reason"):
         entry["reason"] = result["reason"][:500]
     gates = [gate for gate in artifact.get("gates", []) if gate.get("gate_id") != gate_id]

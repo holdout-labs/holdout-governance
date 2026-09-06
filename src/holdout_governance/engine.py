@@ -13,6 +13,7 @@ from ._schemas import ARTIFACT_SCHEMA_VERSION, DEFAULT_POLICY, GATE_INPUTS_TEMPL
 from .artifact import is_v1_manifest, load_artifact, merge_gate_result, save_artifact
 from .contracts import build_report
 from .decide import decide
+from .evidence import check_artifact_evidence
 from .policy import load_policy, sha256_file
 from .runners import run_gate
 
@@ -22,6 +23,27 @@ _SAFETY = {
     "changes_trading_rules": False,
     "provides_investment_advice": False,
 }
+
+
+def _apply_evidence_semantics(artifact: dict) -> list[str]:
+    """Fold evidence-semantics findings into an artifact's decision.
+
+    Attestation is opt-in (``evidence_source`` / ``data_cutoff`` on gate
+    entries); when present, the evidence rules are enforced on every check /
+    report so a same-source slice or an impossible data cutoff can never
+    release.  Legacy artifacts without attestation are untouched.  Returns
+    human-readable warnings (attestation notes) for the caller.
+    """
+    report = check_artifact_evidence(artifact)
+    warnings: list[str] = []
+    if report["attested"] and report["blockers"]:
+        artifact["decision"] = "block"
+        artifact["missing"] = artifact["missing"] + [
+            f"evidence:{blocker}" for blocker in report["blockers"]
+        ]
+    if report["attested"]:
+        warnings.extend(f"evidence: {warning}" for warning in report["warns"])
+    return warnings
 
 
 def _now() -> str:
@@ -178,6 +200,7 @@ def run_check(manifest: str, policy: str | None = None, gate_inputs: str | None 
     if not policy_ok:
         artifact["decision"] = "block"
         artifact["missing"] = artifact["missing"] + ["policy:ref_mismatch"]
+    result["warnings"].extend(_apply_evidence_semantics(artifact))
     save_artifact(manifest, artifact)
 
     result.update(
@@ -205,6 +228,8 @@ def run_attach(
     report_ref: str = "",
     tool_version: str = "",
     reason: str | None = None,
+    evidence_source: str | None = None,
+    data_cutoff: str | None = None,
     attachments: dict[str, str] | None = None,
     review: str | None = None,
     reviewer: str = "",
@@ -247,6 +272,8 @@ def run_attach(
             "tool_version": tool_version,
             "run_at": _now(),
             "reason": reason,
+            "evidence_source": evidence_source,
+            "data_cutoff": data_cutoff,
         })
 
     if attachments:
@@ -323,6 +350,7 @@ def run_report(manifest: str, policy: str | None = None) -> dict[str, Any]:
         outcome = {"decision": "block", "missing": ["policy:file"], "warns": []}
     artifact["decision"] = outcome["decision"]
     artifact["missing"] = outcome["missing"]
+    result["warnings"].extend(_apply_evidence_semantics(artifact))
     result.update(
         v1=False,
         decision=artifact["decision"],

@@ -6,6 +6,7 @@ Subcommands:
 - ``check``      run required gates (optional), decide, write back
 - ``report``     human-readable decision report (v1 or v0.2)
 - ``validate``   legacy v1 research-manifest validation
+- ``evidence``   fail-closed evidence-semantics check (read-only)
 - ``api``        serve the HTTP JSON API (stdlib, no extra deps)
 - ``mcp``        serve the MCP stdio server (needs the [mcp] extra)
 - ``version``    print version
@@ -84,6 +85,8 @@ def cmd_attach(args: argparse.Namespace) -> int:
         report_ref=args.report_ref,
         tool_version=args.tool_version,
         reason=args.reason,
+        evidence_source=args.evidence_source,
+        data_cutoff=args.data_cutoff,
         attachments=attachments,
         review=args.review,
         reviewer=args.reviewer,
@@ -204,6 +207,11 @@ def build_parser() -> argparse.ArgumentParser:
     attach.add_argument("--report-ref", default="", help="evidence reference (e.g. sha256:...)")
     attach.add_argument("--tool-version", default="", help="tool version")
     attach.add_argument("--reason", default=None, help="short reason (fail/not_run)")
+    attach.add_argument("--evidence-source", default=None,
+                        help="attest which data lineage the gate evidence rests on")
+    attach.add_argument("--data-cutoff", default=None,
+                        help="attest the data time the evidence reflects (ISO; "
+                             "must not be later than the attach run)")
     attach.add_argument("--attachment", action="append", default=None,
                         help="NAME=VALUE attachment (repeatable)")
     attach.add_argument("--declaration", action="append", default=None,
@@ -220,6 +228,17 @@ def build_parser() -> argparse.ArgumentParser:
     health = sub.add_parser("health", help="fail-closed ledger health (jsonl) check")
     health.add_argument("--ledger", required=True, help="ledger JSONL path")
     health.add_argument("--json", action="store_true", help="machine-readable output")
+
+    evidence = sub.add_parser(
+        "evidence",
+        help=(
+            "fail-closed evidence-semantics check (read-only): duplicate "
+            "report content, data_cutoff later than run_at, same-source "
+            "slices counted as independent"
+        ),
+    )
+    evidence.add_argument("--manifest", required=True, help="artifact JSON path")
+    evidence.add_argument("--json", action="store_true", help="machine-readable output")
 
     api = sub.add_parser("api", help="serve the HTTP JSON API")
     api.add_argument("--host", default="127.0.0.1")
@@ -261,6 +280,26 @@ def main(argv: list[str] | None = None) -> int:
                 print(f" issue line {issue['line']}: {issue['reason']}")
             for blocker in report.get("blockers") or []:
                 print(f" blocker: {blocker}")
+        return 0 if report["ok"] else 1
+    if args.command == "evidence":
+        from .artifact import load_artifact
+        from .evidence import check_artifact_evidence
+
+        try:
+            artifact = load_artifact(args.manifest)
+        except Exception as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        report = check_artifact_evidence(artifact)
+        if args.json:
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+        else:
+            print(f"evidence: {args.manifest}  attested={report['attested']}  "
+                  f"ok={report['ok']}")
+            for blocker in report["blockers"]:
+                print(f" blocker: {blocker}")
+            for warning in report["warns"]:
+                print(f" warning: {warning}")
         return 0 if report["ok"] else 1
     if args.command == "api":
         return cmd_api(args)

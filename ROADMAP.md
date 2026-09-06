@@ -25,6 +25,12 @@ fail-closed by default, AI may propose but humans approve release).
 - **Glama readiness**: Dockerfile (`pip install '.[mcp]'`, `CMD gov mcp`),
   `mcp.json`, `glama.json`; MCP handshake (initialize + tools/list) verified
   locally.
+- **Evidence semantics (0.4.3)**: optional per-gate attestation
+  (`evidence_source` / `data_cutoff`) enforced fail-closed by
+  `gov check` / `gov report` once any gate attests — duplicate report
+  content, impossible data cutoffs (the `now - lag` forgery class) and
+  same-source same-slice double counting can never release; standalone
+  `gov evidence`. Dogfood backfill of a 2026-09 evidence grill.
 
 ## Architecture direction: one agent entry, not one server per tool
 
@@ -53,8 +59,9 @@ single governance entry — `gov` (CLI + MCP) — while the underlying tools
   `lookahead-free` mid-research-loop, expose that single tool as its own MCP
   server (TDQS-grade tool descriptions, Glama listing, same playbook as
   workspace-metabolism). Do not pre-build six servers with zero users.
-- **Policy schema v2**: conditional gates by attachment content, gate
-  provenance attestation, artifact diffing between revisions.
+- **Policy schema v2**: conditional gates by attachment content,
+  policy-driven attestation requirements (beyond the 0.4.3 opt-in
+  per-gate fields), artifact diffing between revisions.
 - **Benchmark**: gate-chain latency budget (N tools × M artifacts), worst-case
   ledger growth, `gc` for compacted evidence.
 
