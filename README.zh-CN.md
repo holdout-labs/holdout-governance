@@ -146,7 +146,7 @@ gov attach --manifest research/artifact.json --review approved --reviewer resear
   # .pre-commit-config.yaml
   repos:
     - repo: https://github.com/holdout-labs/holdout-governance
-      rev: v0.4.0
+      rev: v0.4.2
       hooks:
         - id: gov-check
   ```
@@ -179,4 +179,3 @@ gov attach --manifest research/artifact.json --review approved --reviewer resear
 python -m pip install -e .[test] pytest
 python -m pytest
 ```
-

@@ -76,7 +76,7 @@ hash-chain catching a tampered ledger and blocking the release:
 ```bash
 cd examples/gov-demo
 ./run-demo.sh        # Linux / macOS
-.\run-demo.ps1       # Windows PowerShell
+pwsh -File ./run-demo.ps1   # Windows PowerShell
 ```
 
 What you should see:
@@ -218,7 +218,7 @@ policy `conditional_attachments` (`when`/`require`).
   # .pre-commit-config.yaml
   repos:
     - repo: https://github.com/holdout-labs/holdout-governance
-      rev: v0.4.0
+      rev: v0.4.2
       hooks:
         - id: gov-check
   ```
