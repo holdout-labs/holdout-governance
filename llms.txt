@@ -5,7 +5,7 @@
 - GitHub: https://github.com/holdout-labs/holdout-governance
 - PyPI: https://pypi.org/project/holdout-governance/
 - Install: `pip install holdout-governance`
-- Reusable GitHub Action: `uses: holdout-labs/holdout-governance@v0.4.2`
+- Reusable GitHub Action: `uses: holdout-labs/holdout-governance@v0.4.3`
 - Commands: `gov init`, `gov check`, `gov report`, `gov attach`, `gov mcp`, `gov version`
 - Contract: artifact schema v0.2 (frozen), fail-closed exit codes (0 = release, 1 = review needed, 2 = block)
 - Full documentation: https://github.com/holdout-labs/holdout-governance/blob/main/README.md
