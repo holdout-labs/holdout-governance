@@ -1,6 +1,11 @@
 # Holdout Governance
 
-Fail-closed evidence manifests for quantitative research and financial AI agents.
+Fail-closed evidence manifests for AI-assisted quantitative research.
+
+This is not a factor library, a backtest engine, or a trading system.
+`holdout-governance` is infrastructure for the moment when a financial AI
+agent drafts a research conclusion, calls tools, attaches evidence, and asks
+whether the result can move forward.
 
 [![PyPI version](https://img.shields.io/pypi/v/holdout-governance)](https://pypi.org/project/holdout-governance)
 [![Python](https://img.shields.io/pypi/pyversions/holdout-governance)](https://pypi.org/project/holdout-governance)
@@ -32,6 +37,11 @@ process.
 This is the intended contract: AI can help produce research, but it cannot
 silently skip evidence, erase accountability, or turn a draft into a released
 decision on its own.
+
+That makes Holdout different from the usual quant stack. The usual stack helps
+you generate signals, test portfolios, and run execution. Holdout governs the
+research artifact around that work: what evidence exists, what checks passed,
+what policy was applied, and where human approval is required.
 
 ## Philosophy
 
