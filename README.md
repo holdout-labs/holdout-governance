@@ -72,7 +72,8 @@ the result is approved for release.
 ## Quick start
 
 ```bash
-python -m pip install -e . pytest
+python -m pip install -c tools/suite-constraints.txt ".[suite,research]"
+gov doctor
 python examples/demo.py
 ```
 
@@ -90,31 +91,69 @@ breaks / out-of-order timestamps):
 gov health --ledger examples/gov-demo/ledger/ledger.jsonl
 ```
 
-## Real end-to-end demo (verified 2026-09-02)
+## Install and diagnose the toolchain
 
-`examples/gov-demo/` is a complete, runnable chain: it executes the **real**
-`imm` / `padj` / `lf` / `fl` binaries through `gov check`, then shows the
-hash-chain catching a tampered ledger and blocking the release:
+The `suite` extra installs the six companion tools at exact versions:
 
 ```bash
-cd examples/gov-demo
-./run-demo.sh        # Linux / macOS
-pwsh -File ./run-demo.ps1   # Windows PowerShell
+python -m pip install "holdout-governance[suite,research]==0.5.0"
+gov doctor
+```
+
+From a source checkout, use
+`python -m pip install -c tools/suite-constraints.txt ".[suite,research]"`.
+[`tools/suite-constraints.txt`](tools/suite-constraints.txt) documents the supported
+Holdout package combination; it does not lock transitive dependencies. The new
+extra and commands are introduced in version 0.5.0.
+
+`gov doctor` prints every package version, expected version, actual command path
+and CLI version. Missing packages, missing commands, unsupported versions and
+commands from a conflicting Python environment produce exit 1. `gov doctor --json`
+provides the same diagnosis for automation; it does not run research or install
+anything. Activate the Python environment where you installed the tools first.
+
+The local synthetic research workbench uses the separate `research` extra:
+run `holdout-research` after installing the extras above, or use
+`Start-Factor-Research.cmd` from the source checkout. `holdout-research --check`
+checks dependencies without creating a study or exposing final-test data.
+The workbench uses public, reproducible synthetic data, not market-calibrated
+returns. Final evaluation consumes one opportunity before accessing samples;
+the shared registry rejects already used or overlapping samples across studies.
+It is a trusted local workflow, not an OS sandbox. See the
+[workbench guide](docs/factor-research-workbench.md) for limits and saved-run behavior.
+Version 0.4.3 does not include this workbench.
+
+## Real end-to-end demo
+
+`examples/gov-demo/run_demo.py` runs **real** `imm` / `padj` / `lf` / `fl`
+commands through `gov check` in a disposable copy of the fixtures. All generated
+manifests, ledger edits and reports stay in that temporary directory. Failure
+or interruption leaves the source fixtures unchanged.
+
+```bash
+python examples/gov-demo/run_demo.py        # Windows / Linux / macOS
+bash examples/gov-demo/run-demo.sh          # Linux / macOS
+pwsh -File examples/gov-demo/run-demo.ps1    # Windows PowerShell
 ```
 
 What you should see:
 
 ```
-1. GREEN PATH   gov check -> decision: release (exit 0)   # 4 gates, real tools
-2. TAMPER       append a fake event to ledger.jsonl
-3. RED PATH     gov check -> decision: block (exit 2)     # hash chain detected it
-4. RESTORE      gov check -> decision: release (exit 0)   # restored
+1. GREEN PATH   real gate chain -> release (exit 0)
+2. TAMPER       append an unchained synthetic ledger event
+3. BLOCK        exit 2 AND evidence_integrity=fail
+4. RESTORE      original ledger bytes -> release (exit 0)
+5. STRATEGY     real qc gate on positive synthetic returns -> release (exit 0)
+6. STRATEGY BLOCK negative synthetic returns -> block (exit 2), qc gate=fail
 ```
 
-The demo directory contains the fixture data (A-share bars, adjustment
-actions, a factor pipeline, a pre-registered claim) plus the generated
-`policy.yml` and `artifact.json`, so the flow is fully reproducible with
-`pip install` of the six Holdout tools and `gov`.
+Exit 1, missing binaries and configuration errors are rejected as demo failures;
+they cannot stand in for ledger tamper detection. The strategy attachments and
+returns are synthetic fixtures, not a verified trading strategy or release
+approval. CI installs this checkout plus six companion packages from fixed
+commit IDs into a clean environment on Windows and Linux, runs `gov doctor`,
+and then runs this chain. Unit tests with substituted processes do not replace
+that integration check.
 
 ## GitHub Action (fail-closed gate in CI)
 
@@ -124,17 +163,20 @@ action step fails — which is the point: nothing ships without evidence.
 
 ```yaml
 steps:
-  - uses: holdout-labs/holdout-governance@v0.4.3
+  - uses: holdout-labs/holdout-governance@v0.5.0
     with:
       manifest: research/artifact.json     # path to your artifact.json
       # policy: research/policy.yml        # optional; defaults to beside the manifest
-      # ref: v0.4.3                        # install ref (default: main)
+      # suite: "true"                     # install the supported companion tools
 ```
 
 Notes:
 
-- Install is `pip install git+https://github.com/holdout-labs/holdout-governance.git@<ref>`;
-  pin `ref` to a release tag for reproducibility (default: `main`).
+- The updated action installs from its own downloaded source directory by default:
+  `uses: ...@<tag-or-SHA>` selects both the action and the installed package.
+  `ref` is an optional explicit installation override; it no longer defaults to `main`.
+  Set `suite: "true"` to install the supported companion tools. Use a commit SHA for
+  an immutable action reference. This behavior is introduced in v0.5.0.
 - The gate needs its evidence tools on `PATH` (`imm` / `padj` / `lf` / `fl`)
   to ever pass; without them it **fails closed by design**. The tools live in
   the sibling repos: `falsification-ledger`, `pit-adjuster`, `factor-qc`,
@@ -283,7 +325,7 @@ policy `conditional_attachments` (`when`/`require`).
   # .pre-commit-config.yaml
   repos:
     - repo: https://github.com/holdout-labs/holdout-governance
-      rev: v0.4.3
+      rev: v0.5.0
       hooks:
         - id: gov-check
   ```
@@ -309,6 +351,17 @@ Use this package as the wrapper above the existing Holdout tools:
 | Past mistakes and reminders | `lesson-book` |
 
 This package records that the checks passed. It does not authorize execution.
+
+## Verify a PyPI release
+
+Each of the seven package repositories now has `verify-pypi.yml`. A published
+GitHub release verifies its tag version on PyPI; the same workflow can be started
+manually with an explicit version after a separate upload. It uses a pinned
+`pypi-verify-action`, installs the exact version into a fresh environment and checks
+packaged modules, package/CLI version consistency and help output. It never uploads
+anything. A GitHub release made before the PyPI upload will fail verification until
+the version is available; rerun after uploading rather than treating the release
+page alone as proof of a usable package.
 
 ## Development
 

@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.5.0] - 2026-10-13
+- Add `suite` with exact companion-tool versions and `gov doctor` to detect
+  missing packages, unsupported versions and commands from a different environment.
+- Add a local synthetic factor-research workbench: counted trial budgets,
+  candidate freezing, one final evaluation, persistent study state and a shared
+  sample-exposure registry that rejects repeated or overlapping final samples.
+  Public fixed-seed data is reproducible; this is neither independent market
+  evidence nor an OS sandbox, and evaluation never supplies human approval.
+- Add `holdout-research`, startup dependency checks, actionable Windows launcher
+  messages and stable saved-run locations. Missing existing SQLite files are not
+  silently recreated, unrelated databases are not initialized as registries,
+  and relocated studies regenerate live audits against their current directory.
+- Run the real evidence/strategy demo in disposable fixture copies, including
+  explicit tamper rejection and source-preservation checks.
+- Install reusable GitHub Actions from the selected action checkout by default,
+  rather than a moving `main` ref. Add cross-platform full-toolchain CI and exact
+  public PyPI installation verification pinned to an immutable verification action.
+
 ## [0.4.3] - 2026-09-06
 - feat: evidence-semantics attestation — gate entries may declare
   `evidence_source` (which data lineage the evidence rests on) and

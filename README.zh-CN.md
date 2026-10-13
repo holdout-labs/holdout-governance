@@ -198,7 +198,7 @@ gov evidence --manifest research/artifact.json
   # .pre-commit-config.yaml
   repos:
     - repo: https://github.com/holdout-labs/holdout-governance
-      rev: v0.4.3
+      rev: v0.5.0
       hooks:
         - id: gov-check
   ```
@@ -224,6 +224,28 @@ gov evidence --manifest research/artifact.json
 | 历史错误复盘 | `lesson-book` |
 
 这个包记录检查是否通过。它不授权任何执行。
+
+## 本地因子研究示例（0.5.0）
+
+工作台从 0.5.0 开始提供；0.4.3 不包含这项能力。安装完整工具组合后先检查环境：
+
+```bash
+python -m pip install "holdout-governance[suite,research]==0.5.0"
+gov doctor
+holdout-research --check
+```
+
+新增可点击的本地工作台：使用合成数据完成因子发现、组合筛选、线性模型优化、
+候选冻结与一次最终评估，实际接入时序、统计、预注册和治理工具。
+共用测试登记处现可拦截跨研究重复/重叠样本，记录失败占用，并让治理检查实时核验评估凭证。
+运行 `python examples/factor_research.py`，Windows 也可双击
+`Start-Factor-Research.cmd`。双击入口会提示缺少的 Python、桌面支持或依赖。
+首次在仓库目录安装：`python -m pip install -e ".[research]"`。
+安装本次源码或构建包后，也可运行 `holdout-research`；`holdout-research --check`
+仅检查环境，不创建研究或消耗最终测试机会。
+
+这是固定规则搜索的演示，不调用大模型、不包含内部真实因子，不提供操作系统级
+测试数据沙箱。详细流程、限制和命令见 [使用说明](docs/factor-research-workbench.md)。
 
 ## 开发
 

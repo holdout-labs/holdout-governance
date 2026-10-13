@@ -1,0 +1,9 @@
+# Supported Holdout package combination. Transitive dependencies are not locked.
+# python -m pip install -c tools/suite-constraints.txt '.[suite,research]'
+holdout-governance==0.5.0
+ashare-data-immunity==0.1.4
+pit-adjuster==0.1.5
+lookahead-free==0.1.3
+factor-qc==0.1.3
+falsification-ledger==0.1.4
+lesson-book==0.1.2

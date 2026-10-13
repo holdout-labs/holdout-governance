@@ -10,6 +10,7 @@ Subcommands:
 - ``api``        serve the HTTP JSON API (stdlib, no extra deps)
 - ``mcp``        serve the MCP stdio server (needs the [mcp] extra)
 - ``version``    print version
+- ``doctor``     check installed suite and executable versions
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 
 from . import __version__
 from . import engine
@@ -247,6 +249,23 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("mcp", help="serve the MCP stdio server (agents)")
 
     sub.add_parser("version", help="print version")
+    doctor = sub.add_parser("doctor", help="check the installed suite and CLI versions")
+    doctor.add_argument("--json", action="store_true", help="machine-readable output")
+    research = sub.add_parser("research", help="local synthetic factor-research workbench")
+    actions = research.add_subparsers(dest="research_action", required=True)
+    desktop = actions.add_parser("desktop", help="open the desktop workbench")
+    desktop.add_argument("--dir", default="research-runs", help="directory for new runs")
+    for action in ("create", "search", "freeze", "evaluate", "inspect", "audit", "record-exposure"):
+        command = actions.add_parser(action)
+        command.add_argument("--dir", required=True, help="one research run directory")
+        if action == "create":
+            command.add_argument("--question", default=None)
+            command.add_argument("--family", choices=["volume_stall", "momentum", "reversal"], default="volume_stall")
+            command.add_argument("--budget", type=int, default=30)
+        if action in ("evaluate", "record-exposure"):
+            command.add_argument("--reviewer", required=True)
+        if action == "audit":
+            command.add_argument("--gate", default="holdout_usage")
     return parser
 
 
@@ -254,9 +273,56 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    if args.command == "research":
+        try:
+            from . import research
+            if args.research_action == "desktop":
+                from .research_ui import launch
+                launch(args.dir)
+                return 0
+            if args.research_action == "create":
+                result = research.create(args.dir, args.question or research.QUESTIONS[args.family], args.budget, args.family)
+            elif args.research_action == "record-exposure":
+                print(research.encode(research.record_exposure(args.dir, args.reviewer)))
+                return 0
+            elif args.research_action == "audit":
+                result = research.audit(args.dir, args.gate)
+                print(research.encode(result))
+                return 0 if result["passed"] else 1
+            elif args.research_action == "evaluate":
+                result = research.evaluate(args.dir, args.reviewer)
+            else:
+                result = getattr(research, args.research_action)(args.dir)
+            print(research.encode({"phase": result["phase"], "n_trials": len(result["trials"]),
+                                   "selected": result["selected"], "evaluation_count": result["evaluation_count"],
+                                   "report": str(Path(args.dir).resolve()/"report.html")}))
+            return 0
+        except ImportError as exc:
+            print(f"research dependency missing: {exc}; install holdout-governance[research]", file=sys.stderr)
+            return 2
+        except Exception as exc:
+            print(f"research blocked: {exc}", file=sys.stderr)
+            return 2
+
     if args.command == "version":
         print(__version__)
         return 0
+    if args.command == "doctor":
+        from .doctor import check_suite
+        report = check_suite()
+        if args.json:
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+        else:
+            print(f"Holdout suite: {'ready' if report['ok'] else 'needs attention'}")
+            print(f"Python: {report['python']}")
+            for tool in report["tools"]:
+                print(f"  {tool['command']}: {tool['version'] or 'not installed'} "
+                      f"(expected {tool['expected_version']})  {tool['path'] or 'not on PATH'}")
+                for issue in tool["issues"]:
+                    print(f"    {issue}")
+            if not report["ok"]:
+                print("Install this checkout with: python -m pip install '.[suite]'")
+        return 0 if report["ok"] else 1
     if args.command == "init":
         return cmd_init(args)
     if args.command == "check":
