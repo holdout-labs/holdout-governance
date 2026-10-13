@@ -1,8 +1,10 @@
 include LICENSE
 include README.md
 include README.zh-CN.md
+include Start-Factor-Research.cmd
 include .pre-commit-hooks.yaml
 recursive-include .github *.yml
 recursive-include schema *.json *.yml
 recursive-include docs *.md
-recursive-include examples *.json *.py
+recursive-include examples *.json *.jsonl *.yml *.py *.sh *.ps1
+recursive-include tools *.txt

@@ -34,6 +34,9 @@ jobs:
         with:
           manifest: /tmp/gov-action-fixture/artifact.json
 
+      - name: The action installs its selected checkout
+        run: gov doctor --help
+
       - name: Assert the gate failed closed
         shell: bash
         run: |

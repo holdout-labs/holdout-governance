@@ -17,15 +17,19 @@ inputs:
       (can be the path written by `gov check`/`gov adjudicate`).
     required: true
   policy:
-    description: Path to policy.yml (default: beside the manifest)
+    description: "Path to policy.yml (default: beside the manifest)"
     required: false
     default: ""
   ref:
     description: >-
-      Git ref of holdout-governance to install (default: main; pin to a
-      release tag such as v0.4.0 for reproducibility)
+      Optional explicit install ref. Empty installs this action
+      checkout, so the tag/SHA in uses also selects the installed package
     required: false
-    default: main
+    default: ""
+  suite:
+    description: Install the exact supported companion-tool combination
+    required: false
+    default: "false"
   python-version:
     description: Python version used to run gov (>= 3.11)
     required: false
@@ -41,10 +45,26 @@ runs:
 
     - name: Install holdout-governance
       shell: bash
-      run: pip install "git+https://github.com/holdout-labs/holdout-governance.git@${{ inputs.ref }}"
+      env:
+        ACTION_SOURCE: ${{ github.action_path }}
+        INSTALL_REF: ${{ inputs.ref }}
+        INSTALL_SUITE: ${{ inputs.suite }}
+      run: |
+        extras=""
+        if [ "$INSTALL_SUITE" = "true" ]; then extras="[suite]"; fi
+        if [ -n "$INSTALL_REF" ]; then
+          source="holdout-governance${extras} @ git+https://github.com/holdout-labs/holdout-governance.git@${INSTALL_REF}"
+        else
+          source="${ACTION_SOURCE}${extras}"
+        fi
+        python -m pip install "$source"
 
     - name: Run gov check (fail-closed gate)
       shell: bash
-      run: >-
-        gov check --manifest "${{ inputs.manifest }}"
-        ${{ inputs.policy != '' && format('--policy {0}', inputs.policy) || '' }}
+      env:
+        MANIFEST: ${{ inputs.manifest }}
+        POLICY: ${{ inputs.policy }}
+      run: |
+        args=(--manifest "$MANIFEST")
+        if [ -n "$POLICY" ]; then args+=(--policy "$POLICY"); fi
+        gov check "${args[@]}"

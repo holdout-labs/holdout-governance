@@ -1,0 +1,62 @@
+name: real-suite-chain
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  suite-chain:
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: utf-8
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.11", "3.12"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/checkout@v4
+        with:
+          repository: holdout-labs/ashare-data-immunity
+          ref: 3f71d99b4e4b8427951f0748f59d6a759c3b3ee7
+          path: suite/ashare-data-immunity
+      - uses: actions/checkout@v4
+        with:
+          repository: holdout-labs/pit-adjuster
+          ref: 4e1f8d3ec9032714d13e728e6fbb72634d777cba
+          path: suite/pit-adjuster
+      - uses: actions/checkout@v4
+        with:
+          repository: holdout-labs/lookahead-free
+          ref: 155784f69981a74db866ccbfe4dd2c3c6ff036da
+          path: suite/lookahead-free
+      - uses: actions/checkout@v4
+        with:
+          repository: holdout-labs/factor-qc
+          ref: 878997d85d393e0eabfcf15187b4f239e4ba5a30
+          path: suite/factor-qc
+      - uses: actions/checkout@v4
+        with:
+          repository: holdout-labs/falsification-ledger
+          ref: f886ee31cba489d20031cb1ed74e698772de34be
+          path: suite/falsification-ledger
+      - uses: actions/checkout@v4
+        with:
+          repository: holdout-labs/lesson-book
+          ref: 4628ac0a59b8c805a0756494052669026aa7952f
+          path: suite/lesson-book
+      - name: Install the current checkout and pinned companion sources
+        shell: bash
+        run: |
+          python -m pip install -c tools/suite-constraints.txt ".[suite,test]" suite/ashare-data-immunity suite/pit-adjuster suite/lookahead-free suite/factor-qc suite/falsification-ledger suite/lesson-book
+      - name: Check installed tools and executable versions
+        run: gov doctor
+      - name: Real chain and fixture preservation tests
+        run: python -m pytest tests/test_doctor.py tests/test_suite_demo.py -q
+      - name: Source fixtures remain unchanged
+        run: git diff --exit-code -- examples/gov-demo
